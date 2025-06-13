@@ -103,7 +103,7 @@ def _process_skymap(
     skymap_bytes = BytesIO(response.read())
     skymap = read_sky_map(skymap_bytes, moc=True)
     coord = SkyCoord(
-        row.right_ascension * u.rad, 
+        row.right_ascension_offset * u.rad, 
         row.declination * u.rad, 
         row.luminosity_distance * u.Mpc,
     )

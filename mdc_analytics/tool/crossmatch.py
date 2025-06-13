@@ -79,9 +79,6 @@ def crossmatch(
     # for each pipeline, query all gracedb uploads made  
     # from between the requested analysis `start` to `stop`
     for pipeline, server in pipelines.items():
-        pipeline_dir = outdir / pipeline
-        pipeline_dir.mkdir(exist_ok=True)
-        
         logging.info(f"Querying {pipeline} events between {start} and {stop} from {server}")
         pipeline_events = query_gevents(pipeline, server, start, stop)
         logging.info(f"Found {len(pipeline_events)} {pipeline} events") 
@@ -119,7 +116,7 @@ def crossmatch(
     
     # save master dataframe to disk
     logging.info(f"Saving dataframe with all events to {outdir / 'events.hdf5'}")
-    events.to_hdf(outdir / "all_events.hdf5", key="events")
+    events.to_hdf(outdir / "events.hdf5", key="events")
 
 def main():
     configure_logging()
