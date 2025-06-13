@@ -1,0 +1,10 @@
+outdir: /home/ethan.marx/projects/mdc_analytics/o3-mdc-output/
+injection_file: /home/ethan.marx/projects/o4-review/amplfi/mdc_analysis/llpic.hdf5
+pipelines:
+  aframe: "https://gracedb-test.ligo.org/api/"
+  gstlal: "https://gracedb-playground.ligo.org/api/"
+offset: 34097418
+dt: 0.5
+flags: ["H1:DMT-ANALYSIS_READY:1", "L1:DMT-ANALYSIS_READY:1", "V1:ITF_SCIENCE:1"]
+ra_key: "right_ascension"
+injection_time_key: "time_geocenter"

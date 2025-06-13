@@ -1,0 +1,28 @@
+[project]
+name = "mdc-analytics"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10, <3.13"
+dependencies = [
+    "astropy>=6.0.1",
+    "gwpy>=3.0.12",
+    "healpy>=1.17.3",
+    "igwn-ligolw>=2.1.0",
+    "jsonargparse>=4.40.0",
+    "jupyter>=1.1.1",
+    "ligo-gracedb>=2.14.2",
+    "ligo-skymap>=2.2.2",
+    "matplotlib>=3.9.4",
+    "numpy>=1.26.4",
+    "pandas>=2.2.3",
+    "tables>=3.10.1",
+    "tqdm>=4.67.1",
+]
+
+[project.scripts]
+mdc-crossmatch = "mdc_analytics.tool.crossmatch:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
