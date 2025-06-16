@@ -42,6 +42,11 @@ def crossmatch(
             List of data quality flags to query and add to the dataframe.
             Will create boolean columns for each flag that indicates whether
             the injection occured during the requested flag.
+        pipelines:
+            A dictionary mapping from pipeline name to a tuple of strings. The
+            first element of the tuple is the gracedb server from which to query 
+            events. The second element is the "search" to filter on (e.g "AllSky")
+            for that pipeline
         dt: 
             Time difference between injected and reported times 
             to consider an injection "recovered"
