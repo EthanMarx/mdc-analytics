@@ -43,7 +43,7 @@ def crossmatch(
             Will create boolean columns for each flag that indicates whether
             the injection occured during the requested flag.
         pipelines:
-            A dictionary mapping from pipeline name to a tuple of strings. The
+            A dictionary mapping from pipeline name (all lowercase) to a tuple of strings. The
             first element of the tuple is the gracedb server from which to query 
             events. The second element is the "search" to filter on (e.g "AllSky")
             for that pipeline
