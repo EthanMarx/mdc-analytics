@@ -22,7 +22,10 @@ EM_BRIGHT_KEYS = ["HasMassGap", "HasNS", "HasRemnant", "HasSSM"]
 
 PIPELINE_TO_SKYMAP = {
     "aframe": "amplfi.fits",
-    "gstlal": "bayestar.multiorder.fits"
+    "gstlal": "bayestar.multiorder.fits",
+    "pycbc": "bayestar.multiorder.fits",
+    "cwb": "cwb.multiorder.fits"
+
 }
 
 # mapping from gevent columns 
@@ -138,7 +141,7 @@ def process_skymaps(
         idx = futures[future]
         try:
             results[idx] = future.result()
-        except Exception:
+        except Exception as e:
             logging.info(f"Failed to process skymap for {gids[idx]}")
             results[idx] = None
 
