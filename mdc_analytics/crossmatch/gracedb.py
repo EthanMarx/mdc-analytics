@@ -9,6 +9,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm.auto import tqdm
+from typing import Optional
 from functools import partial
 from igwn_ligolw import lsctables
 from igwn_ligolw import utils as ligolw_utils
@@ -39,14 +40,19 @@ def query_gevents(
     pipeline: str,
     gdb_server: str, 
     start: float, 
-    stop: float
+    stop: float,
+    search: str = None,
 ) -> pd.DataFrame:
     
     """
     Query gracedb events between start and stop for a given pipeline from a specific gracedb server
     """
     client = GraceDb(service_url=gdb_server, use_auth="scitoken")
-    query = f"{pipeline} gpstime: {start} .. {stop}"
+    query = f"{pipeline} gpstime: {start} .. {stop} "
+
+    if search is not None:    
+        query += f"search: {search} "
+
     response = client.events(query)
     pipeline_events = list(response)
     pipeline_events = pd.DataFrame(pipeline_events)
@@ -271,8 +277,7 @@ def process_embrights(
     for key in EM_BRIGHT_KEYS: 
         output = []
         for result in results:
-            print(result)
-            output.append(result[key] if result is not None else None)
+            output.append(result[key] if result is not None and key in result else None)
         events[f"{pipeline}_" + key] = output
 
     return events

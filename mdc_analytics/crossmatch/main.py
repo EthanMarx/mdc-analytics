@@ -18,7 +18,7 @@ def crossmatch(
     injection_file: Path,
     offset: float,
     flags: list[str], 
-    pipelines: dict[str, str],
+    pipelines: dict[str, tuple[str, str]],
     dt: float = 0.5,
     ra_key: str =  "right_ascension",
     injection_time_key: str = "time_geocenter"
@@ -78,9 +78,9 @@ def crossmatch(
 
     # for each pipeline, query all gracedb uploads made  
     # from between the requested analysis `start` to `stop`
-    for pipeline, server in pipelines.items():
-        logging.info(f"Querying {pipeline} events between {start} and {stop} from {server}")
-        pipeline_events = query_gevents(pipeline, server, start, stop)
+    for pipeline, (server, search) in pipelines.items():
+        logging.info(f"Querying {pipeline} {search} events between {start} and {stop} from {server}")
+        pipeline_events = query_gevents(pipeline, server, start, stop, search)
         logging.info(f"Found {len(pipeline_events)} {pipeline} events") 
         
         logging.info(f"Clustering G events to most significant for each S event")
