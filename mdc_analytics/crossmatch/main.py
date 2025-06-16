@@ -2,7 +2,7 @@ from typing import Optional
 from pathlib import Path
 import logging
 from jsonargparse import auto_cli
-from .gracedb import query_gevents, cluster_gevents, process_coincs, process_skymaps, process_posteriors
+from .gracedb import query_gevents, cluster_gevents, process_coincs, process_skymaps, process_posteriors, process_embrights
 from . import utils
 import pandas as pd
 
@@ -101,6 +101,8 @@ def crossmatch(
         pipeline_noise = pipeline_events[~injection_mask]
         pipeline_noise.to_hdf(outdir / f"{pipeline}_noise.hdf5", key="events")
     
+        events = process_embrights(events, pipeline, server)
+        
         # calculate searched area, vol, probs, etc.
         # and make relevant plots
         events = process_skymaps(events, pipeline, server) 

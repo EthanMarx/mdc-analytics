@@ -1,4 +1,5 @@
 import h5py
+import json
 import numpy as np
 import pandas as pd
 from io import BytesIO
@@ -16,6 +17,7 @@ import logging
 
 CROSSMATCH_KEYS = ["searched_area", "searched_vol", "searched_prob", "searched_prob_vol"]
 PE_KEYS = ["chirp_mass", "luminosity_distance"]
+EM_BRIGHT_KEYS = ["HasMassGap", "HasNS", "HasRemnant", "HasSSM"]
 
 PIPELINE_TO_SKYMAP = {
     "aframe": "amplfi.fits",
@@ -227,6 +229,49 @@ def process_coincs(
     for key in ["chirp_mass", "mass1", "mass2"]:
         output = []
         for result in results:
+            output.append(result[key] if result is not None else None)
+        events[f"{pipeline}_" + key] = output
+
+    return events
+
+def _process_embright(
+    row: pd.Series,
+    pipeline: str,
+    gdb_server: str,
+):
+    gid = getattr(row, f"{pipeline}_graceid")
+    if gid is None:
+        return None
+
+    gdb = GraceDb(service_url=gdb_server, use_auth="scitoken") 
+    response = gdb.files(gid, 'em_bright.json') 
+    em_bright = json.loads(response.read().decode("utf-8"))
+    return em_bright
+
+def process_embrights(
+    events: pd.DataFrame,
+    pipeline: str,
+    gdb_server: str,
+):
+    func = partial(_process_embright, pipeline=pipeline, gdb_server=gdb_server)
+    futures = parallelize(func, events)
+    results = [None] * len(events)
+    for future in tqdm(
+        as_completed(futures),
+        total=len(futures),
+        desc="Processing EM Bright",
+    ):
+        idx = futures[future]
+        try:
+            results[idx] = future.result()
+        except Exception as e:
+            results[idx] = None
+            logging.info(f"Failed to fetch em bright for {idx}")
+     
+    for key in EM_BRIGHT_KEYS: 
+        output = []
+        for result in results:
+            print(result)
             output.append(result[key] if result is not None else None)
         events[f"{pipeline}_" + key] = output
 
