@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mdc-crossmatch = "mdc_analytics.tool.crossmatch:main"
+mdc-crossmatch = "mdc_analytics.crossmatch.main:main"
 
 [build-system]
 requires = ["hatchling"]

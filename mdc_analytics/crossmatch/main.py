@@ -2,8 +2,8 @@ from typing import Optional
 from pathlib import Path
 import logging
 from jsonargparse import auto_cli
-from mdc_analytics.gracedb import query_gevents, cluster_gevents, process_coincs, process_skymaps, process_posteriors
-from mdc_analytics import utils
+from .gracedb import query_gevents, cluster_gevents, process_coincs, process_skymaps, process_posteriors
+from . import utils
 import pandas as pd
 
 def configure_logging():

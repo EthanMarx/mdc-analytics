@@ -12,6 +12,7 @@ from functools import partial
 from igwn_ligolw import lsctables
 from igwn_ligolw import utils as ligolw_utils
 from ligo.gracedb.rest import GraceDb
+import logging
 
 CROSSMATCH_KEYS = ["searched_area", "searched_vol", "searched_prob", "searched_prob_vol"]
 PE_KEYS = ["chirp_mass", "luminosity_distance"]
@@ -119,6 +120,8 @@ def process_skymaps(
     func = partial(_process_skymap, gdb_server=gdb_server, pipeline=pipeline)
     futures = parallelize(func, events) 
     results = [None] * len(events)
+
+    gids = getattr(events, f"{pipeline}_graceid").values
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
@@ -128,6 +131,7 @@ def process_skymaps(
         try:
             results[idx] = future.result()
         except Exception:
+            logging.info(f"Failed to process skymap for {gids[idx]}")
             results[idx] = None
 
     for key in CROSSMATCH_KEYS:
@@ -168,7 +172,11 @@ def process_posteriors(
         desc="Processing Posteriors",
     ):
         idx = futures[future]
-        results[idx] = future.result()
+        try:
+            results[idx] = future.result()
+        except Exception:
+            logging.info(f"Failed to query posterior for {events.aframe_graceid.values[idx]}")
+            results[idx] = None
      
     for key in PE_KEYS:
         output = []
