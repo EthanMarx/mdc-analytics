@@ -74,7 +74,8 @@ def crossmatch(
         events, 
         flags,
         events[injection_time_key].min(),
-        events[injection_time_key].max()
+        events[injection_time_key].max(), 
+        injection_time_key
     )
 
     # calculate start and stop times of injections in replay
@@ -116,8 +117,9 @@ def crossmatch(
             # query amplfi posterior files and 
             # create scatter plots
             events = process_posteriors(events, server)
-
-        else:
+        
+        # TODO: add support for parsing cwb data
+        elif pipeline != "cwb":
             events = process_coincs(events, server, pipeline)
 
     

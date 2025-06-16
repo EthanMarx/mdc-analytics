@@ -24,7 +24,8 @@ def append_data_quality_flags(
     events: pd.DataFrame, 
     flags: list[str],
     start: float,
-    stop: float
+    stop: float,
+    injection_time_key: str,
 ) -> tuple[pd.DataFrame, float]:
     """
     For each flag, adds a boolean column to the events dataframe indicating if
@@ -36,8 +37,8 @@ def append_data_quality_flags(
         dq_flag = DataQualityFlag.query(flag, start, stop)
         segs = np.asarray(dq_flag.active)
         mask = np.any(
-            (events['time_geocenter'].values[:, None] >= segs[:, 0]) &
-            (events['time_geocenter'].values[:, None] <= segs[:, 1]),
+            (events[injection_time_key].values[:, None] >= segs[:, 0]) &
+            (events[injection_time_key].values[:, None] <= segs[:, 1]),
             axis=1
         )
 
