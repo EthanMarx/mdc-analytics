@@ -39,7 +39,7 @@ def resample(
         )
     return data
 
-def parse_fnames(ifos: list[str], data_dir: Path):
+def parse_fnames(ifos: list[str], data_dirs: dict[str, Path]):
     """
     Parse filename directory for each ifo into 
     list of tuples of (filename, start, end)
@@ -47,8 +47,8 @@ def parse_fnames(ifos: list[str], data_dir: Path):
     """
     output = defaultdict(list)
     for ifo in ifos:
-        ifo_data_dir = data_dir / f"output_dir_{ifo[0]}"
-        for file in tqdm(sorted(ifo_data_dir.iterdir())):
+        data_dir = data_dirs[ifo]
+        for file in sorted(data_dir.iterdir()):
             match = fname_re.search(file.name)
             _, start, duration, *_ = match.groups() 
             start = int(start)
@@ -64,7 +64,7 @@ def read_data(
 ):
     
     paths = []
-
+    logging.info(f"Reading data from {start} to {end}")
     # find frame files that overlap with the start and end time
     for file, frame_start, frame_end in sorted(frame_files): 
         if int(frame_start) <= start and start <= int(frame_end):
@@ -102,7 +102,7 @@ def query_event_strain(
     event_strain = {}
     for channel, ifo in zip(channels, ifos):
         logging.debug(f"Reading {ifo} data for event {event_index}")
-        data = read_data(fname_data, channel, start, end)
+        data = read_data(fname_data[ifo], channel, start, end)
         data = resample(data, sample_rate, method=resample_method)
         event_strain[ifo] = data
     

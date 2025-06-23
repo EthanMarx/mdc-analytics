@@ -1,0 +1,10 @@
+outdir: ./test/
+injection_file: /home/deep.chatterjee/git.ligo.org/mdc-analytics/injections-minSNR-4.hdf5 
+ifos: ["H1", "L1", "V1"]
+channels: ["H1:GDS-CALIB_STRAIN", "L1:GDS-CALIB_STRAIN", "V1:Hrec_hoft_16384Hz"]
+sample_rate: 2048
+psd_length: 64
+strain_data_dirs: 
+   H1: /home/shaon.ghosh/ANALYSIS/O4/analysis/output_dir_H
+   L1: /home/shaon.ghosh/ANALYSIS/O4/analysis/output_dir_L
+   V1: /home/shaon.ghosh/ANALYSIS/O4/analysis/output_dir_V

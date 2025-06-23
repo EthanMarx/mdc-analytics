@@ -1,3 +1,4 @@
+import h5py
 import pandas as pd
 from jsonargparse import auto_cli
 from gwpy.timeseries import TimeSeries
@@ -6,7 +7,7 @@ from typing import Literal
 import logging
 import concurrent
 from tqdm.auto import tqdm
-import utils
+from . import utils
 from functools import partial
 
 def query_strain(
@@ -14,7 +15,7 @@ def query_strain(
     injection_file: Path, 
     ifos: list[str],
     channels: list[str], 
-    strain_data_dir: Path,
+    strain_data_dirs: dict[str, Path],
     sample_rate: float, 
     psd_length: float, 
     resample_method: Literal["lal", "gwpy"] = "gwpy", 
@@ -26,7 +27,7 @@ def query_strain(
     """
 
     events = pd.read_hdf(injection_file, key="events")
-    fname_data = utils.parse_fnames(ifos, strain_data_dir) 
+    fname_data = utils.parse_fnames(ifos, strain_data_dirs) 
     
     strain = {ifo: [] for ifo in ifos}
     
@@ -63,8 +64,9 @@ def query_strain(
         for ifo in ifos:
             strain[ifo].append(results[i][ifo])
     
-    return strain
-
+    with h5py.File(outdir / "strain.hdf5") as f:
+        for ifo, data in strain.items():
+            f.create_dataset(ifo, data=data)
 
 def main():
     auto_cli(query_strain, as_positional=False)
