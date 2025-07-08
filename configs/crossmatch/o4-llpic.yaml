@@ -1,11 +1,13 @@
-outdir: /home/ethan.marx/projects/mdc_analytics/output/cycle7
+outdir: /home/ethan.marx/projects/mdc_analytics/output/cycle5
 injection_file: /home/ethan.marx/projects/o4-review/amplfi/mdc_analysis/llpic.hdf5
 pipelines:
   aframe: ["https://gracedb-test.ligo.org/api/", "AllSky"]
+  cwb: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
   gstlal: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
   pycbc: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
+  mbta: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
   cwb: ["https://gracedb-playground.ligo.org/api/", "BBH"]
-offset: 35307018
+offset: 34097418 #35307018
 dt: 0.5
 flags: ["H1:DMT-ANALYSIS_READY:1", "L1:DMT-ANALYSIS_READY:1", "V1:ITF_SCIENCE:1"]
 ra_key: "right_ascension"

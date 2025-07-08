@@ -2,9 +2,10 @@ from typing import Optional
 from pathlib import Path
 import logging
 from jsonargparse import auto_cli
-from .gracedb import query_gevents, cluster_gevents, process_coincs, process_skymaps, process_posteriors, process_embrights
+from .gracedb import query_gevents, cluster_gevents, process_coincs, process_skymaps, process_posteriors, process_embrights, process_cwb, shutdown_global_pool
 from . import utils
 import pandas as pd
+
 
 def configure_logging():
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -119,9 +120,14 @@ def crossmatch(
             events = process_posteriors(events, server)
         
         # TODO: add support for parsing cwb data
-        elif pipeline != "cwb":
+        elif pipeline == "cwb":
+            events = process_cwb(events, server)
+        else:
             events = process_coincs(events, server, pipeline)
 
+
+    logging.info("Shutting down pool")
+    shutdown_global_pool()
     
     # save master dataframe to disk
     logging.info(f"Saving dataframe with all events to {outdir / 'events.hdf5'}")

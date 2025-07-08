@@ -24,6 +24,7 @@ PIPELINE_TO_SKYMAP = {
     "aframe": "amplfi.fits",
     "gstlal": "bayestar.multiorder.fits",
     "pycbc": "bayestar.multiorder.fits",
+    "mbta": "bayestar.multiorder.fits",
     "cwb": "cwb.multiorder.fits"
 
 }
@@ -86,6 +87,20 @@ def cluster_gevents(gevents: pd.DataFrame) -> pd.DataFrame:
 
     return result 
 
+_global_pool = None
+
+def get_pool(max_workers=None):
+    global _global_pool
+    if _global_pool is None:
+        logging.info("Initializing pool")
+        _global_pool = ProcessPoolExecutor(max_workers=max_workers)
+    return _global_pool
+
+def shutdown_global_pool():
+    global _global_pool
+    if _global_pool is not None:
+        _global_pool.shutdown()
+        _global_pool = None
 
 def parallelize(
     func: callable,
@@ -93,11 +108,11 @@ def parallelize(
     max_workers=None,
 
 ):
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        future_to_index = {
-            executor.submit(func, row): i
-            for i, (_, row) in enumerate(events.iterrows())
-        }
+    executor = get_pool(max_workers)
+    future_to_index = {
+        executor.submit(func, row): i
+        for i, (_, row) in enumerate(events.iterrows())
+    }
     return future_to_index 
 
 def _process_skymap(
@@ -227,14 +242,18 @@ def process_coincs(
     func = partial(_process_coinc, pipeline=pipeline, gdb_server=gdb_server)
     futures = parallelize(func, events)
     results = [None] * len(events)
+    gids = getattr(events, f"{pipeline}_graceid").values
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
         desc="Processing Coincs",
     ):
         idx = futures[future]
-        results[idx] = future.result()
-     
+        try:
+            results[idx] = future.result()
+        except Exception:
+            logging.info(f"Failed to parse coinc for {gids[idx]}")
+            results[idx] = None 
     for key in ["chirp_mass", "mass1", "mass2"]:
         output = []
         for result in results:
@@ -242,6 +261,50 @@ def process_coincs(
         events[f"{pipeline}_" + key] = output
 
     return events
+
+
+def _process_cwb(
+    row: pd.Series,
+    gdb_server: str,
+):
+    gid = getattr(row, f"cwb_graceid")
+    if gid is None:
+        return None
+
+    gdb = GraceDb(service_url=gdb_server, use_auth="scitoken") 
+    response = gdb.files(gid, 'trigger.txt')     
+    cwb_data = BytesIO(response.read())
+    content = cwb_data.read().decode('utf-8') 
+            
+    for line in content.split('\n'):
+        if line.startswith('mchirp:'):
+            chirp_mass = float(line.split(':')[1].strip())
+    output = {"chirp_mass": chirp_mass}
+    return output
+
+def process_cwb(
+    events: pd.DataFrame,
+    gdb_server: str,
+):
+    func = partial(_process_cwb, gdb_server=gdb_server)
+    futures = parallelize(func, events)
+    results = [None] * len(events)
+    for future in tqdm(
+        as_completed(futures),
+        total=len(futures),
+        desc="Processing CWB",
+    ):
+        idx = futures[future]
+        results[idx] = future.result()
+     
+    for key in ["chirp_mass"]:
+        output = []
+        for result in results:
+            output.append(result[key] if result is not None else None)
+        events[f"cwb_" + key] = output
+
+    return events
+
 
 def _process_embright(
     row: pd.Series,

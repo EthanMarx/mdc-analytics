@@ -3,7 +3,7 @@ import pandas as pd
 from jsonargparse import auto_cli
 from gwpy.timeseries import TimeSeries
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 import logging
 import concurrent
 from tqdm.auto import tqdm
@@ -19,6 +19,7 @@ def query_strain(
     sample_rate: float, 
     psd_length: float, 
     resample_method: Literal["lal", "gwpy"] = "gwpy", 
+    filters: Optional[tuple[str, float, float]] = None,
     max_workers: int = 10
 ):
     """
