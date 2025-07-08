@@ -107,3 +107,19 @@ def query_event_strain(
         event_strain[ifo] = data
     
     return event_index, event_strain 
+
+def filter_events(events: pd.DataFrame, filters: list[tuple[str, float, float]]):
+    """
+    Apply filters to the events DataFrame.
+    Filters can be a list of strings or a list of tuples with (column, min, max).
+    """
+    if filters is None:
+        return events
+    
+    for key, low, high in filters:
+        logging.info(f"Applying filter on {key} to range ({low}, {high})")
+        low, high = float(low), float(high)
+        mask = (events[key] >= low) & (events[key] <= high)
+        events = events[mask]
+    
+    return events

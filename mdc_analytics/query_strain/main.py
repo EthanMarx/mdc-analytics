@@ -10,6 +10,13 @@ from tqdm.auto import tqdm
 from . import utils
 from functools import partial
 
+def configure_logging():
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    logging.basicConfig(level=logging.INFO, format=log_format)
+    logging.getLogger("scitokens").setLevel(logging.ERROR) 
+    logging.getLogger("BAYESTAR").setLevel(logging.ERROR)
+    logging.getLogger("matplotlib.texmanager").setLevel(logging.ERROR)
+
 def query_strain(
     outdir: Path,
     injection_file: Path, 
@@ -27,7 +34,11 @@ def query_strain(
     into an hdf5 format
     """
 
+    configure_logging()
+    
+    # read in injection file and apply filters
     events = pd.read_hdf(injection_file, key="events")
+    events = utils.filter_events(events, filters)
     fname_data = utils.parse_fnames(ifos, strain_data_dirs) 
     
     strain = {ifo: [] for ifo in ifos}

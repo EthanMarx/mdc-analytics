@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 from pathlib import Path
 import logging
 from jsonargparse import auto_cli
@@ -6,6 +6,7 @@ from .gracedb import query_gevents, cluster_gevents, process_coincs, process_sky
 from . import utils
 import pandas as pd
 
+PIPELINE = Literal["aframe", "cwb", "gstlal", "pycbc", "preferred"]
 
 def configure_logging():
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -19,10 +20,11 @@ def crossmatch(
     injection_file: Path,
     offset: float,
     flags: list[str], 
-    pipelines: dict[str, tuple[str, str]],
+    pipelines: dict[str, tuple[PIPELINE, str]],
     dt: float = 0.5,
+    bayestar_ifo_configs: Optional[list[frozenset[str]]] = None,
     ra_key: str =  "right_ascension",
-    injection_time_key: str = "time_geocenter"
+    injection_time_key: str = "time_geocenter",
 ):
     """
     Crossmatch a ground truth "MDC" injection set with online analysis events submitted to GraceDB 
@@ -51,13 +53,20 @@ def crossmatch(
         dt: 
             Time difference between injected and reported times 
             to consider an injection "recovered"
-        ra_key: 
+        bayestar_ifo_configs:
+            Interferometer configurations for which to run bayestar. For each configuraiton
+            that doesn't correspond to the gevents skymap, if the coinc.xml has 
+            the appropiate timeseries for that configuration, 
+            will run bayestar and calc statistics for that configuration 
+        ra_key:
             Key in the dataframe corresponding to the injections right ascension
         injection_time_key:
             Key in the dataframe corresponding to the injections time at geocenter 
     """
     logging.info(f"Saving data to {outdir}")
     outdir.mkdir(parents=True, exist_ok=True)
+
+    logging.info("Analysing detector configurations {bayestar_ifo_config} with bayestar")
 
     # construct a dataframe consisting of ground truth mdc events 
     # of interest, by making user requested filters, and removing events
@@ -71,6 +80,7 @@ def crossmatch(
 
     # add boolean columns that says if flags were active in science mode 
     logging.info("Appending data quality flag boolean columns")
+    """
     events = utils.append_data_quality_flags(
         events, 
         flags,
@@ -78,7 +88,7 @@ def crossmatch(
         events[injection_time_key].max(), 
         injection_time_key
     )
-
+    """
     # calculate start and stop times of injections in replay
     start = events.time_geocenter_replay.min() - 10
     stop = events.time_geocenter_replay.max() + 10
@@ -86,10 +96,15 @@ def crossmatch(
     # for each pipeline, query all gracedb uploads made  
     # from between the requested analysis `start` to `stop`
     for pipeline, (server, search) in pipelines.items():
-        logging.info(f"Querying {pipeline} {search} events between {start} and {stop} from {server}")
-        pipeline_events = query_gevents(pipeline, server, start, stop, search)
-        logging.info(f"Found {len(pipeline_events)} {pipeline} events") 
-        
+
+        if pipeline != "preferred":
+            logging.info(f"Querying {pipeline} {search} events between {start} and {stop} from {server}")
+            pipeline_events = query_gevents(pipeline, server, start, stop, search)
+            logging.info(f"Found {len(pipeline_events)} {pipeline} events") 
+        else:
+            logging.info(f"Querying preferred events between {start} and {stop} from {server}")
+            pipeline_events = query_gevents(pipeline, server, start, stop, search)
+            logging.info(f"Found {len(pipeline_events)} {pipeline} events") 
         logging.info(f"Clustering G events to most significant for each S event")
         pipeline_events = cluster_gevents(pipeline_events)
         logging.info(f"{len(pipeline_events)} after clustering to S events")
@@ -108,12 +123,12 @@ def crossmatch(
         pipeline_noise = pipeline_events[~injection_mask]
         pipeline_noise.to_hdf(outdir / f"{pipeline}_noise.hdf5", key="events")
     
-        events = process_embrights(events, pipeline, server)
         
         # calculate searched area, vol, probs, etc.
         # and make relevant plots
-        events = process_skymaps(events, pipeline, server) 
+        events = process_skymaps(events, pipeline, server, bayestar_ifo_configs=bayestar_ifo_configs) 
 
+        events = process_embrights(events, pipeline, server)
         if pipeline == "aframe":
             # query amplfi posterior files and 
             # create scatter plots
