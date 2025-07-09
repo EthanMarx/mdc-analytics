@@ -3,7 +3,7 @@ name = "mdc-analytics"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10, <3.13"
+requires-python = ">=3.12, <3.13"
 dependencies = [
     "astropy>=6.0.1",
     "gwpy>=3.0.12",
@@ -21,6 +21,17 @@ dependencies = [
     "tqdm>=4.67.1",
 ]
 
+[dependency-groups]
+dev = [
+    "pre-commit>=3.7.0,<4",
+    "ruff>=0.9.6",
+]
+
+[tool.uv]
+default-groups = [
+    "dev",
+]
+
 [project.scripts]
 mdc-crossmatch = "mdc_analytics.crossmatch.main:main"
 mdc-query-strain = "mdc_analytics.query_strain.main:main"
@@ -28,3 +39,22 @@ mdc-query-strain = "mdc_analytics.query_strain.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 79
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+mccabe = {"max-complexity" = 18}
+select = ["B", "C", "E", "F", "W",  "B9"]
+ignore = ["W605", "E203"]  # ignore for consistency with black
+
+# ignore asterisk imports and unused
+# import errors in __init__ files
+per-file-ignores =  {"**/__init__.py" = ["F401", "F403"]}
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["mdc_analytics"]
+# multi-line-output = 3
+# include-trailing-comma = true

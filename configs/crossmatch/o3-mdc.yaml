@@ -2,7 +2,9 @@ outdir: /home/ethan.marx/projects/mdc_analytics/o3-mdc-output/
 injection_file: "/home/deep.chatterjee/git.ligo.org/mdc-analytics/injections-minSNR-4.hdf5"
 pipelines:
   #aframe: ["https://gracedb-test01.igwn.org/api/", "AllSky"]
-  gstlal: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
+  #gstlal: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
+  #pycbc: ["https://gracedb-playground.ligo.org/api/", "AllSky"]
+  preferred: ["https://gracedb-playground.ligo.org/api/", null] 
 offset: 98304000 #170880000
 dt: 0.5
 flags: ["H1:DMT-ANALYSIS_READY:1", "L1:DMT-ANALYSIS_READY:1", "V1:ITF_SCIENCE:1"]

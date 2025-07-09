@@ -1,14 +1,12 @@
 from gwpy.timeseries import TimeSeries
-import lal 
+import lal
 from typing import Literal
 import numpy as np
 from pathlib import Path
 import pandas as pd
 from collections import defaultdict
-from tqdm.auto import tqdm
 import re
 import logging
-import concurrent
 
 
 patterns = {
@@ -23,9 +21,9 @@ fname_re = re.compile(pattern)
 
 
 def resample(
-    data: TimeSeries, 
-    sample_rate: float, 
-    method: Literal["lal", "gwpy"] = "gwpy"
+    data: TimeSeries,
+    sample_rate: float,
+    method: Literal["lal", "gwpy"] = "gwpy",
 ):
     if method == "gwpy":
         data = data.resample(sample_rate)
@@ -39,9 +37,10 @@ def resample(
         )
     return data
 
+
 def parse_fnames(ifos: list[str], data_dirs: dict[str, Path]):
     """
-    Parse filename directory for each ifo into 
+    Parse filename directory for each ifo into
     list of tuples of (filename, start, end)
     so that we can easily find relevant files later
     """
@@ -50,23 +49,23 @@ def parse_fnames(ifos: list[str], data_dirs: dict[str, Path]):
         data_dir = data_dirs[ifo]
         for file in sorted(data_dir.iterdir()):
             match = fname_re.search(file.name)
-            _, start, duration, *_ = match.groups() 
+            _, start, duration, *_ = match.groups()
             start = int(start)
             duration = int(duration)
             output[ifo].append((file, start, duration + start))
     return output
 
+
 def read_data(
-    frame_files: list[tuple[Path, float, float]], 
-    channel: str, 
-    start: float, 
-    end: float
+    frame_files: list[tuple[Path, float, float]],
+    channel: str,
+    start: float,
+    end: float,
 ):
-    
     paths = []
     logging.info(f"Reading data from {start} to {end}")
     # find frame files that overlap with the start and end time
-    for file, frame_start, frame_end in sorted(frame_files): 
+    for file, frame_start, frame_end in sorted(frame_files):
         if int(frame_start) <= start and start <= int(frame_end):
             paths.append(str(file))
         elif int(frame_start) <= end and end <= int(frame_end):
@@ -84,42 +83,45 @@ def read_data(
     data = data.crop(start, end)
     return data
 
+
 def query_event_strain(
     row: tuple[int, pd.Series],
-    ifos: list[str], 
+    ifos: list[str],
     channels: list[str],
-    fname_data, 
-    sample_rate: float, 
-    psd_length: float, 
-    resample_method: str
+    fname_data,
+    sample_rate: float,
+    psd_length: float,
+    resample_method: str,
 ):
-    
-    event_index, event = row 
+    event_index, event = row
     gpstime = event.time
     start = gpstime - psd_length - 4
-    end = gpstime + psd_length + 4 
-    
+    end = gpstime + psd_length + 4
+
     event_strain = {}
-    for channel, ifo in zip(channels, ifos):
+    for channel, ifo in zip(channels, ifos, strict=False):
         logging.debug(f"Reading {ifo} data for event {event_index}")
         data = read_data(fname_data[ifo], channel, start, end)
         data = resample(data, sample_rate, method=resample_method)
         event_strain[ifo] = data
-    
-    return event_index, event_strain 
 
-def filter_events(events: pd.DataFrame, filters: list[tuple[str, float, float]]):
+    return event_index, event_strain
+
+
+def filter_events(
+    events: pd.DataFrame, filters: list[tuple[str, float, float]]
+):
     """
     Apply filters to the events DataFrame.
     Filters can be a list of strings or a list of tuples with (column, min, max).
     """
     if filters is None:
         return events
-    
+
     for key, low, high in filters:
         logging.info(f"Applying filter on {key} to range ({low}, {high})")
         low, high = float(low), float(high)
         mask = (events[key] >= low) & (events[key] <= high)
         events = events[mask]
-    
+
     return events

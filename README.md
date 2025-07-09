@@ -29,4 +29,3 @@ mdc-crossmatch --config /path/to/config.yaml
 Example configs are in `configs/crossmatch`
 
 ## Query Strain
-
