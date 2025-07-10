@@ -20,6 +20,24 @@ PE_KEYS = ["chirp_mass", "luminosity_distance"]
 MATCHED_FILTERING_PIPELINES = ["mbta", "pycbc", "gstlal", "spiir"]
 
 
+def _aframe_wrapper(row, gdb_server):
+    """Wrapper function for aframe PE processing."""
+    gid = row.aframe_graceid
+    return _process_posterior(gid, gdb_server)
+
+
+def _cwb_wrapper(row, gdb_server):
+    """Wrapper function for cwb PE processing."""
+    gid = row.cwb_graceid
+    return _process_cwb(gid, gdb_server)
+
+
+def _matched_filter_wrapper(row, pipeline, gdb_server):
+    """Wrapper function for matched filter PE processing."""
+    gid = getattr(row, f"{pipeline}_graceid")
+    return _process_coinc(gid, gdb_server)
+
+
 def _process_posterior(
     gid: str,
     gdb_server: str,
@@ -55,11 +73,8 @@ def process_aframe_pe(
     max_workers: int = 15,
     raise_on_error: bool = False,
 ):
-    def _wrapper(row):
-        gid = row.aframe_graceid
-        return _process_posterior(gid, gdb_server)
-
-    futures = parallelize(_wrapper, events, max_workers=max_workers)
+    func = partial(_aframe_wrapper, gdb_server=gdb_server)
+    futures = parallelize(func, events, max_workers=max_workers)
     results = [None] * len(events)
     for future in tqdm(
         as_completed(futures),
@@ -131,11 +146,10 @@ def process_matched_filter_pe(
     max_workers: int = 15,
     raise_on_error: bool = False,
 ):
-    def _wrapper(row):
-        gid = getattr(row, f"{pipeline}_graceid")
-        return _process_coinc(gid, gdb_server)
-
-    futures = parallelize(_wrapper, events, max_workers=max_workers)
+    func = partial(
+        _matched_filter_wrapper, pipeline=pipeline, gdb_server=gdb_server
+    )
+    futures = parallelize(func, events, max_workers=max_workers)
     results = [None] * len(events)
     gids = getattr(events, f"{pipeline}_graceid").values
     for future in tqdm(
@@ -197,11 +211,8 @@ def process_cwb_pe(
     max_workers: int = 15,
     raise_on_error: bool = False,
 ):
-    def _wrapper(row):
-        gid = row.cwb_graceid
-        return _process_cwb(gid, gdb_server)
-
-    futures = parallelize(_wrapper, events, max_workers=max_workers)
+    func = partial(_cwb_wrapper, gdb_server=gdb_server)
+    futures = parallelize(func, events, max_workers=max_workers)
     results = [None] * len(events)
     for future in tqdm(
         as_completed(futures),

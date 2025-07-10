@@ -5,6 +5,7 @@ from io import BytesIO
 from pathlib import Path
 from functools import partial
 from concurrent.futures import as_completed
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -125,11 +126,9 @@ def _process_skymap_configs(
     gid: str,
     pipeline: str,
     coord: SkyCoord,
-    bayestar_ifo_configs: list[frozenset[str]],
+    bayestar_ifo_configs: Optional[list[frozenset[str]]],
 ) -> dict[frozenset[str], object]:
     """Process all requested IFO configurations for a single event."""
-
-    results = {ifo_config: None for ifo_config in bayestar_ifo_configs}
 
     # Process the uploaded GraceDB skymap
     gracedb_skymap, gracedb_instruments = _get_gracedb_skymap(
@@ -137,9 +136,18 @@ def _process_skymap_configs(
     )
     if gracedb_skymap is None:
         # Return None for all requested configurations if no skymap found
-        return results
+        if bayestar_ifo_configs is None:
+            return {gracedb_instruments: None}
+        else:
+            return dict.fromkeys(bayestar_ifo_configs)
 
     gracedb_result = _crossmatch_skymap(gracedb_skymap, coord)
+
+    # If bayestar_ifo_configs is None, only return GraceDB skymap result
+    if bayestar_ifo_configs is None:
+        return {gracedb_instruments: gracedb_result}
+
+    results = dict.fromkeys(bayestar_ifo_configs)
     results[gracedb_instruments] = gracedb_result
 
     # For matched filtering pipelines, generate additional Bayestar skymaps
@@ -175,7 +183,7 @@ def _process_skymap(
     row: pd.Series,
     pipeline: str,
     gdb_server: str,
-    bayestar_ifo_configs: list[frozenset[str]],
+    bayestar_ifo_configs: Optional[list[frozenset[str]]],
 ):
     """Process skymap statistics for a single event."""
     # Set environment variable to speed up Bayestar
@@ -211,7 +219,7 @@ def process_skymaps(
     events: pd.DataFrame,
     pipeline: str,
     gdb_server: str,
-    bayestar_ifo_configs: list[frozenset[str]],
+    bayestar_ifo_configs: Optional[list[frozenset[str]]],
     max_workers: int = 15,
     raise_on_error: bool = False,
 ) -> pd.DataFrame:
@@ -222,7 +230,8 @@ def process_skymaps(
         events: DataFrame with event data
         pipeline: Pipeline name (aframe, cwb, mbta, pycbc, gstlal, preferred)
         gdb_server: GraceDB server URL
-        bayestar_ifo_configs: List of IFO configurations for Bayestar
+        bayestar_ifo_configs: List of IFO configurations for Bayestar, or None
+            to only use the GraceDB skymap IFO configuration
         max_workers: Maximum number of worker processes
         raise_on_error: If True, raise exceptions for debugging. If False,
             log and continue.
@@ -237,13 +246,20 @@ def process_skymaps(
         bayestar_ifo_configs=bayestar_ifo_configs,
     )
     futures = parallelize(func, events, max_workers=max_workers)
-    ifo_config_strs = [
-        "".join([x[0] for x in sorted(ifo_config)])
-        for ifo_config in bayestar_ifo_configs
-    ]
-    results = {
-        ifo_config: [None] * len(events) for ifo_config in ifo_config_strs
-    }
+
+    # Handle case where bayestar_ifo_configs is None
+    if bayestar_ifo_configs is None:
+        # We'll determine the ifo config strings dynamically from the results
+        ifo_config_strs = []
+        results = {}
+    else:
+        ifo_config_strs = [
+            "".join([x[0] for x in sorted(ifo_config)])
+            for ifo_config in bayestar_ifo_configs
+        ]
+        results = {
+            ifo_config: [None] * len(events) for ifo_config in ifo_config_strs
+        }
 
     gids = getattr(events, f"{pipeline}_graceid").values
     for future in tqdm(
@@ -261,15 +277,23 @@ def process_skymaps(
                 raise e
             else:
                 logging.error(f"Failed to process skymap for {gids[idx]}")
-                result = {ifo_config: None for ifo_config in ifo_config_strs}
+                if bayestar_ifo_configs is None:
+                    result = None
+                else:
+                    result = dict.fromkeys(ifo_config_strs)
                 logging.error(e)
 
         if result is None:
+            if bayestar_ifo_configs is None:
+                continue  # Skip this event if no result and no configs
             for ifo_config in ifo_config_strs:
                 results[ifo_config][idx] = None
         else:
             for ifo_config, res in result.items():
                 ifo_config_str = "".join([x[0] for x in sorted(ifo_config)])
+                # Initialize results dict if bayestar_ifo_configs was None
+                if ifo_config_str not in results:
+                    results[ifo_config_str] = [None] * len(events)
                 results[ifo_config_str][idx] = res
 
     # append bayestar statistics for each inteferometer combination

@@ -42,7 +42,7 @@ def crossmatch(
     ra_key: str = "right_ascension",
     injection_time_key: str = "time_geocenter",
     max_workers: int = 15,
-    filters: Optional[list[tuple[str, float, float]]] = None,
+    filters: Optional[list[tuple[str, float | str, float | str]]] = None,
     raise_on_error: bool = False,
 ):
     """
@@ -97,17 +97,22 @@ def crossmatch(
             If True, raise exceptions with full traceback for debugging. If
             False, log errors and continue.
     """
-    bayestar_ifo_configs = [frozenset(s) for s in bayestar_ifo_configs]
+    if bayestar_ifo_configs is not None:
+        bayestar_ifo_configs = [frozenset(s) for s in bayestar_ifo_configs]
+        config_strings = [
+            "{" + ", ".join(sorted(config)) + "}"
+            for config in bayestar_ifo_configs
+        ]
+        logging.info(
+            f"Analysing detector configurations {config_strings} with bayestar"
+        )
+    else:
+        logging.info(
+            "No bayestar_ifo_configs specified, only using GraceDB skymap"
+        )
+
     logging.info(f"Saving data to {outdir}")
     outdir.mkdir(parents=True, exist_ok=True)
-
-    config_strings = [
-        "{" + ", ".join(sorted(config)) + "}"
-        for config in bayestar_ifo_configs
-    ]
-    logging.info(
-        f"Analysing detector configurations {config_strings} with bayestar"
-    )
 
     # construct a dataframe consisting of ground truth mdc events
     # of interest, by making user requested filters, and removing events
@@ -185,6 +190,9 @@ def crossmatch(
         )
 
         # calculate searched area, vol, probs, etc.
+        # also, for matched filtering pipelines that
+        # have coinc.xml files, optionally reanalyze
+        # with different bayestar detector configurations
         events = process_skymaps(
             events,
             pipeline,
@@ -194,6 +202,7 @@ def crossmatch(
             raise_on_error=True,
         )
 
+        # query embright probabilities
         events = process_embrights(
             events,
             pipeline,

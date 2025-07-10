@@ -112,11 +112,14 @@ def crossmatch_gevents(
         "far": np.nan,
     }
 
+    # Collect all new columns to add at once to avoid fragmentation
+    new_columns = {}
+
     for attr in GEVENT_COLUMNS.keys():
         default_val = default_values[attr]
         output = np.full(len(events), default_val, dtype=object)
         output[mask] = pipeline_events.loc[args[mask], attr]
-        events[f"{pipeline}_{attr}"] = output
+        new_columns[f"{pipeline}_{attr}"] = output
 
     # Handle preferred_pipeline column for preferred events
     if (
@@ -125,11 +128,16 @@ def crossmatch_gevents(
     ):
         output = np.full(len(events), "", dtype=object)
         output[mask] = pipeline_events.loc[args[mask], "preferred_pipeline"]
-        events["preferred_pipeline"] = output
+        new_columns["preferred_pipeline"] = output
 
-    events[f"{pipeline}_dt"] = np.abs(
-        events[f"{pipeline}_gpstime"] - events.time_geocenter_replay
+    # Calculate dt column
+    new_columns[f"{pipeline}_dt"] = np.abs(
+        new_columns[f"{pipeline}_gpstime"] - events.time_geocenter_replay
     )
+
+    # Add all new columns at once using concat to avoid fragmentation
+    new_df = pd.DataFrame(new_columns, index=events.index)
+    events = pd.concat([events, new_df], axis=1)
 
     # calculate mask for pipeline events dataframe that
     # is true if there was a match with any mdc event
