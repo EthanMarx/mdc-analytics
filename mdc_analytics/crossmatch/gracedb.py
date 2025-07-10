@@ -4,15 +4,14 @@ from ligo.gracedb.rest import GraceDb
 from itertools import batched
 
 
-# mapping from gevent columns
-# to datatype for storage in pandas df
+# mapping from gevent columns to (datatype, default_value) for pandas df
 GEVENT_COLUMNS = {
-    "graceid": "str",
-    "gpstime": "float64",
-    "superevent": "str",
-    "search": "str",
-    "instruments": "str",
-    "far": "float64",
+    "graceid": ("string", ""),
+    "gpstime": ("float64", float("nan")),
+    "superevent": ("string", ""),
+    "search": ("string", ""),
+    "instruments": ("string", ""),
+    "far": ("float64", float("nan")),
 }
 
 SUPPORTED_PIPELINES = {"mbta", "spiir", "cwb", "aframe", "gstlal", "pycbc"}
@@ -66,7 +65,9 @@ def query_gevents(
     pipeline_events = list(response)
     pipeline_events = pd.DataFrame(pipeline_events)
     pipeline_events = pipeline_events[list(GEVENT_COLUMNS.keys())]
-    pipeline_events = pipeline_events.astype(GEVENT_COLUMNS)
+    # Extract dtypes from GEVENT_COLUMNS tuples
+    dtypes = {col: dtype for col, (dtype, _) in GEVENT_COLUMNS.items()}
+    pipeline_events = pipeline_events.astype(dtypes)
 
     # Add preferred_pipeline column for preferred events
     if pipeline == "preferred":
@@ -93,7 +94,7 @@ def cluster_gevents(gevents: pd.DataFrame) -> pd.DataFrame:
             non_none_events.groupby("superevent", group_keys=False)
             .apply(
                 lambda x: x.loc[x["far"].idxmin()],
-                include_groups=True,
+                include_groups=False,
             )
             .reset_index(drop=True)
         )

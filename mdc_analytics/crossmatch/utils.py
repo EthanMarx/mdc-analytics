@@ -43,16 +43,19 @@ def parallelize(
 
 
 def apply_skymap_offset(
-    events: pd.DataFrame, offset: int, ra_key: str
+    events: pd.DataFrame,
+    offset: int,
+    ra_key: str,
+    column_name: str = "right_ascension_offset",
 ) -> pd.DataFrame:
     """
-    Corrects injected right ascencsion corresponding to offset,
-    adding a `right_ascension_offset` column
+    Corrects injected right ascension corresponding to offset,
+    adding a column with the specified name
     """
     skymap_offset = offset % SEC_PER_DAY * 360 / SEC_PER_DAY
     ra = events[ra_key].values + np.deg2rad(skymap_offset)
     ra = ra % (2 * np.pi)
-    events["right_ascension_offset"] = ra
+    events[column_name] = ra
     return events
 
 
@@ -93,7 +96,7 @@ def crossmatch_gevents(
     # is true if there was a match with any gevent event
     # within dt threshold
     diffs = np.abs(
-        events.time_geocenter_replay.values[:, None]
+        events[f"{pipeline}_time_geocenter_replay"].values[:, None]
         - pipeline_events.gpstime.values[None, :]
     )
     pipeline_args = np.argmin(np.abs(diffs), axis=0)
@@ -101,33 +104,12 @@ def crossmatch_gevents(
     mins = diffs[np.arange(len(diffs)), args]
     mask = mins < dt
 
-    # for injections that have a corresponding
-    # gevent, add gevent information, otherwise report appropriate defaults
-    default_values = {
-        "graceid": "",
-        "gpstime": np.nan,
-        "superevent": "",
-        "search": "",
-        "instruments": "",
-        "far": np.nan,
-    }
-
-    # Define appropriate data types for each column to avoid HDF5 warnings
-    column_dtypes = {
-        "graceid": "string",
-        "gpstime": "float64",
-        "superevent": "string",
-        "search": "string",
-        "instruments": "string",
-        "far": "float64",
-    }
-
     # Collect all new columns to add at once to avoid fragmentation
     new_columns = {}
 
     for attr in GEVENT_COLUMNS.keys():
-        default_val = default_values[attr]
-        dtype = column_dtypes[attr]
+        # Extract dtype and default value from GEVENT_COLUMNS tuple
+        dtype, default_val = GEVENT_COLUMNS[attr]
 
         output = np.full(len(events), default_val, dtype=object)
         output[mask] = pipeline_events.loc[args[mask], attr]
@@ -144,7 +126,8 @@ def crossmatch_gevents(
 
     # Calculate dt column
     new_columns[f"{pipeline}_dt"] = np.abs(
-        new_columns[f"{pipeline}_gpstime"] - events.time_geocenter_replay
+        new_columns[f"{pipeline}_gpstime"]
+        - events[f"{pipeline}_time_geocenter_replay"]
     )
 
     # Add all new columns at once using concat to avoid fragmentation

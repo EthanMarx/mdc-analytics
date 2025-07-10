@@ -1,6 +1,7 @@
 from typing import Optional, Literal
 from pathlib import Path
 import logging
+from dataclasses import dataclass
 from jsonargparse import auto_cli
 from .gracedb import (
     query_gevents,
@@ -14,6 +15,16 @@ from .utils import shutdown_global_pool
 import pandas as pd
 
 PIPELINE = Literal["aframe", "cwb", "gstlal", "pycbc", "preferred"]
+
+
+@dataclass
+class PipelineConfig:
+    """Configuration for a single pipeline."""
+
+    name: PIPELINE
+    server: str
+    offset: float
+    search: Optional[str] = None
 
 
 def configure_logging():
@@ -34,9 +45,8 @@ def configure_logging():
 def crossmatch(
     outdir: Path,
     injection_file: Path,
-    offset: float,
     flags: list[str],
-    pipelines: dict[PIPELINE, tuple[str, Optional[str]]],
+    pipelines: list[PipelineConfig],
     dt: float = 0.5,
     bayestar_ifo_configs: Optional[list[frozenset[str]]] = None,
     ra_key: str = "right_ascension",
@@ -56,23 +66,14 @@ def crossmatch(
             Path to the ground truth injection file in hdf5 format. The
             file must have an `events` group, and be readable with pandas
             via `pd.read_hdf(injection_file, key="events)`.
-        offset:
-            Offset that maps from ground truth injection times to
-            the corresponding time the injection occurs in the replay.
-            The offset will also be used to account for corresponding
-            change in right ascension due to earths rotation
         flags:
             List of data quality flags to query and add to the dataframe.
             Will create boolean columns for each flag that indicates whether
             the injection occured during the requested flag.
         pipelines:
-            A dictionary mapping from pipeline name (all lowercase) to a tuple
-            of strings. The
-            first element of the tuple is the gracedb server from which to
-            query
-            events. The second element is the "search" to filter on (e.g
-            "AllSky")
-            for that pipeline
+            A list of PipelineConfig objects, each specifying a pipeline name,
+            GraceDB server URL, time offset for that pipeline, and optional
+            search filter (e.g. "AllSky")
         dt:
             Time difference between injected and reported times
             to consider an injection "recovered"
@@ -122,14 +123,7 @@ def crossmatch(
     logging.info(f"Loaded {len(events)} initial events from injection file")
     events = utils.filter_events(events, filters)
     logging.info(f"After filtering: {len(events)} events remaining")
-    events["time_geocenter_replay"] = events[injection_time_key] + offset
-
     # events["luminosity_distance"] = events["distance"]
-    logging.info(
-        "Calculating ra offset and adding `right_ascension_offset` column to"
-        " dataframe"
-    )
-    events = utils.apply_skymap_offset(events, offset, ra_key)
 
     # add boolean columns that says if flags were active in science mode
     logging.info("Appending data quality flag boolean columns")
@@ -140,13 +134,29 @@ def crossmatch(
         events[injection_time_key].max(),
         injection_time_key,
     )
-    # calculate start and stop times of injections in replay
-    start = events.time_geocenter_replay.min() - 10
-    stop = events.time_geocenter_replay.max() + 10  # 86400 * 39
-
     # for each pipeline, query all gracedb uploads made
     # from between the requested analysis `start` to `stop`
-    for pipeline, (server, search) in pipelines.items():
+    for pipeline_config in pipelines:
+        pipeline = pipeline_config.name
+        server = pipeline_config.server
+        search = pipeline_config.search
+        offset = pipeline_config.offset
+
+        # Create pipeline-specific time and RA offset columns
+        logging.info(
+            f"Calculating {pipeline} time and RA offsets with offset {offset}"
+        )
+        events[f"{pipeline}_time_geocenter_replay"] = (
+            events[injection_time_key] + offset
+        )
+        events = utils.apply_skymap_offset(
+            events, offset, ra_key, f"{pipeline}_right_ascension_offset"
+        )
+
+        # Calculate start and stop times for this pipeline
+        start = events[f"{pipeline}_time_geocenter_replay"].min() - 10
+        stop = events[f"{pipeline}_time_geocenter_replay"].max() + 10
+
         logging.info(
             f"Querying {pipeline}{' ' + search if search else ''} events "
             f"between {start} and {stop} from {server}"

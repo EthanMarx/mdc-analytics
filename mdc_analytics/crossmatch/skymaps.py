@@ -202,9 +202,9 @@ def _process_skymap(
 
     gdb = GraceDb(service_url=gdb_server, use_auth="scitoken")
 
-    # Create coordinate object for the injection
+    # Create coordinate object for the injection using pipeline-specific RA
     coord = SkyCoord(
-        row.right_ascension_offset * u.rad,
+        getattr(row, f"{pipeline}_right_ascension_offset") * u.rad,
         row.declination * u.rad,
         row.luminosity_distance * u.Mpc,
     )
