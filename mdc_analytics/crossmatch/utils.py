@@ -112,14 +112,26 @@ def crossmatch_gevents(
         "far": np.nan,
     }
 
+    # Define appropriate data types for each column to avoid HDF5 warnings
+    column_dtypes = {
+        "graceid": "string",
+        "gpstime": "float64",
+        "superevent": "string",
+        "search": "string",
+        "instruments": "string",
+        "far": "float64",
+    }
+
     # Collect all new columns to add at once to avoid fragmentation
     new_columns = {}
 
     for attr in GEVENT_COLUMNS.keys():
         default_val = default_values[attr]
+        dtype = column_dtypes[attr]
+
         output = np.full(len(events), default_val, dtype=object)
         output[mask] = pipeline_events.loc[args[mask], attr]
-        new_columns[f"{pipeline}_{attr}"] = output
+        new_columns[f"{pipeline}_{attr}"] = pd.Series(output).astype(dtype)
 
     # Handle preferred_pipeline column for preferred events
     if (
@@ -128,7 +140,7 @@ def crossmatch_gevents(
     ):
         output = np.full(len(events), "", dtype=object)
         output[mask] = pipeline_events.loc[args[mask], "preferred_pipeline"]
-        new_columns["preferred_pipeline"] = output
+        new_columns["preferred_pipeline"] = pd.Series(output).astype("string")
 
     # Calculate dt column
     new_columns[f"{pipeline}_dt"] = np.abs(

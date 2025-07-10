@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 from ligo.gracedb.rest import GraceDb
 from tqdm.auto import tqdm
-
+import numpy as np
 from .utils import parallelize
 
 EM_BRIGHT_KEYS = ["HasMassGap", "HasNS", "HasRemnant", "HasSSM"]
@@ -82,12 +82,19 @@ def process_embrights(
                 results[idx] = None
                 logging.error(f"Failed to fetch em bright for {gids[idx]}")
 
+    # Collect all EM bright columns to add at once to avoid fragmentation
+    new_columns = {}
     for key in EM_BRIGHT_KEYS:
         output = []
         for result in results:
             output.append(
-                result[key] if result is not None and key in result else False
+                result[key] if result is not None and key in result else np.nan
             )
-        events[f"{pipeline}_" + key] = output
+        # Convert to proper float dtype for HDF5 compatibility
+        new_columns[f"{pipeline}_{key}"] = pd.Series(output).astype("float64")
+
+    # Add all new columns at once using concat to avoid fragmentation
+    new_df = pd.DataFrame(new_columns, index=events.index)
+    events = pd.concat([events, new_df], axis=1)
 
     return events

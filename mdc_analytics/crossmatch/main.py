@@ -124,7 +124,7 @@ def crossmatch(
     logging.info(f"After filtering: {len(events)} events remaining")
     events["time_geocenter_replay"] = events[injection_time_key] + offset
 
-    events["luminosity_distance"] = events["distance"]
+    # events["luminosity_distance"] = events["distance"]
     logging.info(
         "Calculating ra offset and adding `right_ascension_offset` column to"
         " dataframe"
@@ -142,7 +142,7 @@ def crossmatch(
     )
     # calculate start and stop times of injections in replay
     start = events.time_geocenter_replay.min() - 10
-    stop = events.time_geocenter_replay.max() - 86400 * 39
+    stop = events.time_geocenter_replay.max() + 10  # 86400 * 39
 
     # for each pipeline, query all gracedb uploads made
     # from between the requested analysis `start` to `stop`
@@ -213,6 +213,10 @@ def crossmatch(
 
     logging.info("Shutting down pool")
     shutdown_global_pool()
+
+    # Fix data types before saving to avoid HDF5 mixed-type warnings
+    if "approximant" in events.columns:
+        events["approximant"] = events["approximant"].astype("string")
 
     # save master dataframe to disk
     logging.info(
