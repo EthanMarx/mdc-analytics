@@ -1,9 +1,45 @@
 import pandas as pd
 import numpy as np
+import logging
+from concurrent.futures import ProcessPoolExecutor
 from gwpy.segments import DataQualityFlag
 from .gracedb import GEVENT_COLUMNS
 
 SEC_PER_DAY = 86164.0905
+
+# Global process pool for parallel processing
+_global_pool = None
+
+
+def get_pool(max_workers=None):
+    """Get or create a global process pool."""
+    global _global_pool
+    if _global_pool is None:
+        logging.info("Initializing pool")
+        _global_pool = ProcessPoolExecutor(max_workers=max_workers)
+    return _global_pool
+
+
+def shutdown_global_pool():
+    """Shutdown the global process pool."""
+    global _global_pool
+    if _global_pool is not None:
+        _global_pool.shutdown()
+        _global_pool = None
+
+
+def parallelize(
+    func: callable,
+    events: pd.DataFrame,
+    max_workers=15,
+):
+    """Submit function calls to the global process pool for parallel execution."""  # noqa: E501
+    executor = get_pool(max_workers)
+    future_to_index = {
+        executor.submit(func, row): i
+        for i, (_, row) in enumerate(events.iterrows())
+    }
+    return future_to_index
 
 
 def apply_skymap_offset(
@@ -66,11 +102,30 @@ def crossmatch_gevents(
     mask = mins < dt
 
     # for injections that have a corresponding
-    # gevent, add gevent information, otherwise report `None`
+    # gevent, add gevent information, otherwise report appropriate defaults
+    default_values = {
+        "graceid": "",
+        "gpstime": np.nan,
+        "superevent": "",
+        "search": "",
+        "instruments": "",
+        "far": np.nan,
+    }
+
     for attr in GEVENT_COLUMNS.keys():
-        output = np.array([None] * len(events))
+        default_val = default_values[attr]
+        output = np.full(len(events), default_val, dtype=object)
         output[mask] = pipeline_events.loc[args[mask], attr]
         events[f"{pipeline}_{attr}"] = output
+
+    # Handle preferred_pipeline column for preferred events
+    if (
+        pipeline == "preferred"
+        and "preferred_pipeline" in pipeline_events.columns
+    ):
+        output = np.full(len(events), "", dtype=object)
+        output[mask] = pipeline_events.loc[args[mask], "preferred_pipeline"]
+        events["preferred_pipeline"] = output
 
     events[f"{pipeline}_dt"] = np.abs(
         events[f"{pipeline}_gpstime"] - events.time_geocenter_replay
@@ -84,3 +139,29 @@ def crossmatch_gevents(
     found_mask = pipeline_mins < dt
 
     return events, found_mask
+
+
+def filter_events(
+    events: pd.DataFrame, filters: list[tuple[str, float, float]] = None
+) -> pd.DataFrame:
+    """
+    Apply filters to the events DataFrame.
+    Filters should be a list of tuples with (column, min, max).
+
+    Args:
+        events: DataFrame to filter
+        filters: List of tuples (column_name, min_value, max_value)
+
+    Returns:
+        Filtered DataFrame
+    """
+    if filters is None:
+        return events
+
+    for key, low, high in filters:
+        logging.info(f"Applying filter on {key} to range ({low}, {high})")
+        low, high = float(low), float(high)
+        mask = (events[key] >= low) & (events[key] <= high)
+        events = events[mask]
+
+    return events

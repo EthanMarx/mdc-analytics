@@ -5,25 +5,30 @@ from jsonargparse import auto_cli
 from .gracedb import (
     query_gevents,
     cluster_gevents,
-    process_coincs,
-    process_skymaps,
-    process_posteriors,
-    process_embrights,
-    process_cwb,
-    shutdown_global_pool,
 )
+from .skymaps import process_skymaps
+from .pe import process_pe
+from .embrights import process_embrights
 from . import utils
+from .utils import shutdown_global_pool
 import pandas as pd
 
 PIPELINE = Literal["aframe", "cwb", "gstlal", "pycbc", "preferred"]
 
 
 def configure_logging():
+    import warnings
+
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_format)
     logging.getLogger("scitokens").setLevel(logging.ERROR)
     logging.getLogger("BAYESTAR").setLevel(logging.ERROR)
     logging.getLogger("matplotlib.texmanager").setLevel(logging.ERROR)
+    # Silence X.509 certificate expiration warnings
+    warnings.filterwarnings(
+        "ignore",
+        message="Failed to validate.*X.509 certificate has less than.*seconds remaining",  # noqa: E501
+    )
 
 
 def crossmatch(
@@ -36,9 +41,13 @@ def crossmatch(
     bayestar_ifo_configs: Optional[list[frozenset[str]]] = None,
     ra_key: str = "right_ascension",
     injection_time_key: str = "time_geocenter",
+    max_workers: int = 15,
+    filters: Optional[list[tuple[str, float, float]]] = None,
+    raise_on_error: bool = False,
 ):
     """
-    Crossmatch a ground truth "MDC" injection set with online analysis events submitted to GraceDB
+    Crossmatch a ground truth "MDC" injection set with online analysis
+    events submitted to GraceDB
 
     Args:
         outdir:
@@ -57,29 +66,47 @@ def crossmatch(
             Will create boolean columns for each flag that indicates whether
             the injection occured during the requested flag.
         pipelines:
-            A dictionary mapping from pipeline name (all lowercase) to a tuple of strings. The
-            first element of the tuple is the gracedb server from which to query
-            events. The second element is the "search" to filter on (e.g "AllSky")
+            A dictionary mapping from pipeline name (all lowercase) to a tuple
+            of strings. The
+            first element of the tuple is the gracedb server from which to
+            query
+            events. The second element is the "search" to filter on (e.g
+            "AllSky")
             for that pipeline
         dt:
             Time difference between injected and reported times
             to consider an injection "recovered"
         bayestar_ifo_configs:
-            Interferometer configurations for which to run bayestar. For each configuraiton
+            Interferometer configurations for which to run bayestar. For each
+            configuration
             that doesn't correspond to the gevents skymap, if the coinc.xml has
             the appropiate timeseries for that configuration,
             will run bayestar and calc statistics for that configuration
         ra_key:
-            Key in the dataframe corresponding to the injections right ascension
+            Key in the dataframe corresponding to the injections right
+            ascension
         injection_time_key:
-            Key in the dataframe corresponding to the injections time at geocenter
+            Key in the dataframe corresponding to the injections time at
+            geocenter
+        max_workers:
+            Maximum number of worker processes for parallel processing
+        filters:
+            Optional list of tuples (column_name, min_value, max_value) to
+            filter events
+        raise_on_error:
+            If True, raise exceptions with full traceback for debugging. If
+            False, log errors and continue.
     """
     bayestar_ifo_configs = [frozenset(s) for s in bayestar_ifo_configs]
     logging.info(f"Saving data to {outdir}")
     outdir.mkdir(parents=True, exist_ok=True)
 
+    config_strings = [
+        "{" + ", ".join(sorted(config)) + "}"
+        for config in bayestar_ifo_configs
+    ]
     logging.info(
-        f"Analysing detector configurations {bayestar_ifo_configs} with bayestar"
+        f"Analysing detector configurations {config_strings} with bayestar"
     )
 
     # construct a dataframe consisting of ground truth mdc events
@@ -87,12 +114,15 @@ def crossmatch(
     # that were not injected into science mode segments for the given ifos
     logging.info(f"Reading MDC injection dataset from {injection_file}")
     events = pd.read_hdf(injection_file, key="events")
-    events = events[events["snr_net"] > 10]
+    logging.info(f"Loaded {len(events)} initial events from injection file")
+    events = utils.filter_events(events, filters)
+    logging.info(f"After filtering: {len(events)} events remaining")
     events["time_geocenter_replay"] = events[injection_time_key] + offset
 
     events["luminosity_distance"] = events["distance"]
     logging.info(
-        "Calculating ra offset and adding `right_ascension_offset` column to dataframe"
+        "Calculating ra offset and adding `right_ascension_offset` column to"
+        " dataframe"
     )
     events = utils.apply_skymap_offset(events, offset, ra_key)
 
@@ -107,13 +137,14 @@ def crossmatch(
     )
     # calculate start and stop times of injections in replay
     start = events.time_geocenter_replay.min() - 10
-    stop = events.time_geocenter_replay.max() - 86400 * 30
+    stop = events.time_geocenter_replay.max() - 86400 * 39
 
     # for each pipeline, query all gracedb uploads made
     # from between the requested analysis `start` to `stop`
     for pipeline, (server, search) in pipelines.items():
         logging.info(
-            f"Querying {pipeline}{' ' + search if search else ''} events between {start} and {stop} from {server}"
+            f"Querying {pipeline}{' ' + search if search else ''} events "
+            f"between {start} and {stop} from {server}"
         )
         pipeline_events = query_gevents(pipeline, server, start, stop, search)
         logging.info(f"Found {len(pipeline_events)} {pipeline} events")
@@ -135,7 +166,8 @@ def crossmatch(
             f"{sum(injection_mask)} events are within {dt}s of known injection"
         )
         logging.info(
-            f"{sum(~injection_mask)} events do not correspond with known injection"
+            f"{sum(~injection_mask)} events do not correspond with known "
+            f"injection"
         )
 
         # filter for "noise" pipeline events
@@ -143,23 +175,32 @@ def crossmatch(
         pipeline_noise = pipeline_events[~injection_mask]
         pipeline_noise.to_hdf(outdir / f"{pipeline}_noise.hdf5", key="events")
 
-        if pipeline == "aframe":
-            # query amplfi posterior files and
-            # create scatter plots
-            events = process_posteriors(events, server)
-
-        elif pipeline == "cwb":
-            events = process_cwb(events, server)
-        else:
-            events = process_coincs(events, server, pipeline)
-
-        # calculate searched area, vol, probs, etc.
-        # and make relevant plots
-        events = process_skymaps(
-            events, pipeline, server, bayestar_ifo_configs=bayestar_ifo_configs
+        # process parameter estimation data
+        events = process_pe(
+            events,
+            pipeline,
+            server,
+            max_workers=max_workers,
+            raise_on_error=True,
         )
 
-        events = process_embrights(events, pipeline, server)
+        # calculate searched area, vol, probs, etc.
+        events = process_skymaps(
+            events,
+            pipeline,
+            server,
+            bayestar_ifo_configs=bayestar_ifo_configs,
+            max_workers=max_workers,
+            raise_on_error=True,
+        )
+
+        events = process_embrights(
+            events,
+            pipeline,
+            server,
+            max_workers=max_workers,
+            raise_on_error=True,
+        )
 
     logging.info("Shutting down pool")
     shutdown_global_pool()
