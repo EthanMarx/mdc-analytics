@@ -31,8 +31,8 @@ def query_strain(
     max_workers: int = 10,
 ):
     """
-    Query strain data corresponding to known MDC injections from directories of GWF files
-    into an hdf5 format
+    Query strain data corresponding to known MDC injections
+    from directories of GWF files into an hdf5 format
     """
 
     configure_logging()

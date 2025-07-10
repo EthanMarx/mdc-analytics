@@ -113,7 +113,8 @@ def filter_events(
 ):
     """
     Apply filters to the events DataFrame.
-    Filters can be a list of strings or a list of tuples with (column, min, max).
+    Filters can be a list of strings
+    or a list of tuples with (column, min, max).
     """
     if filters is None:
         return events

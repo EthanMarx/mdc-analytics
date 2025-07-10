@@ -42,6 +42,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 79
+exclude = ["*.ipynb"]
 extend-exclude = ["docs"]
 
 [tool.ruff.lint]
