@@ -1,0 +1,35 @@
+# HTCondor submit file for mdc-crossmatch with O3 MDC config
+#
+# This file launches the mdc-crossmatch script using the O3 MDC configuration
+
+# Executable and arguments
+executable = executable.sh 
+
+# Resource requirements
+request_cpus = 15
+request_memory = 3GB
+request_disk = 10MB
+accounting_group_user = ethan.marx
+accounting_group = ligo.dev.o4.cbc.allsky.aframe
+
+# Job universe and environment
+universe = vanilla
+getenv = True
+
+# Output, error, and log files
+output = mdc_crossmatch.out
+error = mdc_crossmatch.err
+log = mdc_crossmatch.log
+
+use_oauth_services = scitokens
+
+# Job requirements and preferences
+requirements = (Machine != "")
++JobBatchName = "mdc-crossmatch-o3"
+
+# Email notifications (optional - uncomment and set your email)
+# notify_user = your.email@example.com
+# notification = Complete
+
+# Submit the job
+queue 1
