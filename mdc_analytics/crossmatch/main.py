@@ -14,7 +14,9 @@ from . import utils
 from .utils import shutdown_global_pool
 import pandas as pd
 
-PIPELINE = Literal["aframe", "cwb", "gstlal", "pycbc", "preferred"]
+PIPELINE = Literal[
+    "aframe", "cwb", "gstlal", "pycbc", "mbta", "spiir", "preferred"
+]
 
 
 @dataclass
@@ -224,7 +226,7 @@ def crossmatch(
     logging.info("Shutting down pool")
     shutdown_global_pool()
 
-    # Fix data types before saving to avoid HDF5 mixed-type warnings
+    # Fix data types before saving to avoid HDF5 compatibility issues
     if "approximant" in events.columns:
         events["approximant"] = events["approximant"].astype("string")
 
@@ -233,6 +235,7 @@ def crossmatch(
         f"Saving dataframe with all events to {outdir / 'events.hdf5'}"
     )
     events.to_hdf(outdir / "events.hdf5", key="events")
+    events.to_csv(outdir / "events.csv")
 
 
 def main():
