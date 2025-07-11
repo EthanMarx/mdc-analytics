@@ -26,7 +26,7 @@ Then,
 mdc-crossmatch --config /path/to/config.yaml
 ```
 
-Example configs for the LVKs O3 MDC and O4 LLPIC are in the `configs/crossmatch` directory
+Example configs for the LVKs O3 MDC and O4 LLPIC are in the `configs/crossmatch` directory.
 
 
 ## Query Strain
@@ -34,4 +34,4 @@ Example configs for the LVKs O3 MDC and O4 LLPIC are in the `configs/crossmatch`
 
 ## Data
 
-The `./data` directory contains 
+The `./data` directory contains the injection files for the O3 MDC and O4 MDC for convenience
