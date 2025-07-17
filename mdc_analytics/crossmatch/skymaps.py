@@ -17,7 +17,7 @@ from ligo.skymap.bayestar import localize
 from ligo.skymap.io import events
 from ligo.skymap.postprocess.crossmatch import crossmatch
 from ligo.gracedb.rest import GraceDb
-from ligo.lw.utils import load_fileobj
+from igwn_ligolw.utils import load_fileobj
 from tqdm.auto import tqdm
 
 from .utils import parallelize
@@ -265,7 +265,7 @@ def process_skymaps(
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
-        desc="Processing Skymaps",
+        desc=f"Processing {pipeline} Skymaps",
     ):
         idx = futures[future]
         try:

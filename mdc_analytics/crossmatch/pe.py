@@ -10,7 +10,7 @@ import pandas as pd
 import requests
 from ligo.gracedb.rest import GraceDb
 from ligo.skymap.io import events
-from ligo.lw.utils import load_fileobj
+from igwn_ligolw.utils import load_fileobj
 from igwn_ligolw import lsctables
 from tqdm.auto import tqdm
 
@@ -79,7 +79,7 @@ def process_aframe_pe(
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
-        desc="Processing Posteriors",
+        desc="Processing Aframe PE",
     ):
         idx = futures[future]
         try:
@@ -155,7 +155,7 @@ def process_matched_filter_pe(
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
-        desc="Processing Coincs",
+        desc=f"Processing {pipeline} PE",
     ):
         idx = futures[future]
         try:
@@ -217,7 +217,7 @@ def process_cwb_pe(
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
-        desc="Processing CWB",
+        desc="Processing cwb PE",
     ):
         idx = futures[future]
         try:

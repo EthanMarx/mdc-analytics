@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import logging
 from concurrent.futures import ProcessPoolExecutor
+import multiprocessing as mp
 from gwpy.segments import DataQualityFlag
 from .gracedb import GEVENT_COLUMNS
 
@@ -9,6 +10,7 @@ SEC_PER_DAY = 86164.0905
 
 # Global process pool for parallel processing
 _global_pool = None
+mp.set_start_method("spawn", force=True)
 
 
 def get_pool(max_workers=None):

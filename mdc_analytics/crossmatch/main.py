@@ -42,6 +42,12 @@ def configure_logging():
         "ignore",
         message="Failed to validate.*X.509 certificate has less than.*seconds remaining",  # noqa: E501
     )
+    warnings.filterwarnings(
+        "ignore",
+        message=".*add.*newdoc_ufunc is deprecated.*",
+        category=DeprecationWarning,
+        module="ligo.skymap.util.numpy",
+    )
 
 
 def crossmatch(

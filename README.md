@@ -20,6 +20,14 @@ First, authenticate to gracedb and segment data base via scitokens
 htgettoken -a vault.ligo.org -i igwn --scopes gracedb.read,dqsegdb.read
 ```
 
+It may be useful to set 
+
+```
+export IGWN_AUTH_UTILS_FIND_X509=0
+``` 
+
+to avoid igwn_auth_utils searching for X509 credentials.
+
 Then, 
 
 ```

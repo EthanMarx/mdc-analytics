@@ -68,7 +68,7 @@ def process_embrights(
     for future in tqdm(
         as_completed(futures),
         total=len(futures),
-        desc="Processing EM Bright",
+        desc=f"Processing {pipeline} EM Brights",
     ):
         idx = futures[future]
         try:
