@@ -1,6 +1,10 @@
 outdir: /home/ethan.marx/projects/mdc_analytics/output/aframe-playground-llpic/all_pipelines
 injection_file: /home/ethan.marx/projects/o4-review/amplfi/mdc_analysis/llpic.hdf5
 pipelines:
+  - name: spiir 
+    server: "https://gracedb-playground.ligo.org/api/"
+    offset: 37726218
+    search: "AllSky"
   - name: aframe
     server: "https://gracedb-playground.ligo.org/api/"
     offset: 37726218
@@ -21,10 +25,7 @@ pipelines:
     server: "https://gracedb-playground.ligo.org/api/"
     offset: 37726218
     search: "AllSky"
-  - name: spiir 
-    server: "https://gracedb-playground.ligo.org/api/"
-    offset: 37726218
-    search: "AllSky"
+  
 dt: 0.5
 flags: ["H1:DMT-ANALYSIS_READY:1", "L1:DMT-ANALYSIS_READY:1", "V1:ITF_SCIENCE:1"]
 ra_key: "right_ascension"

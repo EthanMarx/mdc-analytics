@@ -4,32 +4,32 @@
 
 # Executable and arguments
 executable = executable.sh 
+transfer_executable = true
+
+should_transfer_files = YES
+transfer_input_files = mdc-analytics_sandbox.tar.gz,./configs/crossmatch/o3-mdc.yaml,./data/o3-mdc-injections.hdf5
+
 
 # Resource requirements
-request_cpus = 15
-request_memory = 3GB
-request_disk = 10MB
+request_cpus = 20
+request_memory = 10GB
+request_disk = 4GB
 accounting_group_user = ethan.marx
 accounting_group = ligo.dev.o4.cbc.allsky.aframe
 
-# Job universe and environment
+stream_output = True
+stream_error = True
 universe = vanilla
-getenv = True
 
-# Output, error, and log files
 output = mdc_crossmatch.out
 error = mdc_crossmatch.err
 log = mdc_crossmatch.log
 
-use_oauth_services = scitokens
+use_oauth_services = igwn 
 
-# Job requirements and preferences
-requirements = (Machine != "")
 +JobBatchName = "mdc-crossmatch-o3"
+requirements = HAS_SINGULARITY=?=True
 
-# Email notifications (optional - uncomment and set your email)
-# notify_user = your.email@example.com
-# notification = Complete
 
 # Submit the job
 queue 1
