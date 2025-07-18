@@ -131,7 +131,6 @@ def crossmatch_gevents(
         new_columns[f"{pipeline}_gpstime"]
         - events[f"{pipeline}_time_geocenter_replay"]
     )
-
     # Add all new columns at once using concat to avoid fragmentation
     new_df = pd.DataFrame(new_columns, index=events.index)
     events = pd.concat([events, new_df], axis=1)
@@ -169,4 +168,5 @@ def filter_events(
         mask = (events[key] >= low) & (events[key] <= high)
         events = events[mask]
 
+    events.reset_index(drop=True, inplace=True)
     return events

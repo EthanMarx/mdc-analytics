@@ -131,7 +131,7 @@ def crossmatch(
     logging.info(f"Loaded {len(events)} initial events from injection file")
     events = utils.filter_events(events, filters)
     logging.info(f"After filtering: {len(events)} events remaining")
-    # events["luminosity_distance"] = events["distance"]
+    events["luminosity_distance"] = events["distance"]
 
     # add boolean columns that says if flags were active in science mode
     logging.info("Appending data quality flag boolean columns")
