@@ -43,3 +43,24 @@ Example configs for the LVKs O3 MDC and O4 LLPIC are in the `configs/crossmatch`
 ## Data
 
 The `./data` directory contains the injection files for the O3 MDC and O4 MDC for convenience
+
+
+## Running on OSG with Condor
+
+For use with condor, you must run on the OSG due to reliance on gracedb.
+To do so, you must build the apptainer image as a sandbox, that will
+be transferred and unzipped on the execute node
+
+```
+apptainer build mdc-analytics.sif apptainer.def
+```
+
+```
+apptainer build --sandbox mdc-analytics_sandbox/ mdc-analytics.sif
+```
+
+```
+tar -czf mdc-analytics_sandbox.tar.gz mdc-analytics_sandbox/
+```
+
+Now, you can submit via condor - see the condor.sub and executable.sh files
