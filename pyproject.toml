@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.12, <3.13"
 dependencies = [
     "astropy>=6.0.1",
+    "bilby>=2.6.0",
     "gwpy>=3.0.12",
     "healpy>=1.17.3",
     "igwn-ligolw>=2.1.0",

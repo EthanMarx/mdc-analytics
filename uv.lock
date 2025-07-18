@@ -183,6 +183,43 @@ wheels = [
 ]
 
 [[package]]
+name = "bilby"
+version = "2.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "bilby-cython" },
+    { name = "corner" },
+    { name = "dill" },
+    { name = "dynesty" },
+    { name = "emcee" },
+    { name = "h5py" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5a/8a/78eb1c09b3c041fc17feef146aae601f607b0c720c0d236a8995c52d44e2/bilby-2.6.0.tar.gz", hash = "sha256:2a6b63d3cc6ee9fa0ef78b15ce61acd4cdbd351599d2d3d891e40015fb9b1e0a", size = 11512207 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/51/56e648ed488ae2a2a4ae9506abee63e11378806ac7088deb8b42440a315c/bilby-2.6.0-py3-none-any.whl", hash = "sha256:4ea59b4792388c8be4078dea80fe4ff79e38ec8bd7f6f66a3c1b5c12dfa97d26", size = 2267710 },
+]
+
+[[package]]
+name = "bilby-cython"
+version = "0.5.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4c/93/6877dd78b375f3e83c8209aecc18f18d1cd88269a8a5c2d3c7dd9ad4fc53/bilby_cython-0.5.3.tar.gz", hash = "sha256:44400b2abc6fa592b13d69f33460cb156d6edb48a783f5539ee0a21e1d0a3508", size = 238517 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/c5/ad5ca082b2610defc488679690df8137300c6bb396b24f783e3d74873fa4/bilby.cython-0.5.3-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:264ccd8ca1adabc794931ed6deb5082ad0ed4b52694be8158cb421a80a752bca", size = 351851 },
+    { url = "https://files.pythonhosted.org/packages/13/26/f0b46d56d278665b484ec421dc571fb28bdd81635137d00e0edc2c8fddc9/bilby.cython-0.5.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:44e5e381c2861e26a4e1fd5c591ea0c3c9a0e2f0d8c78f28f8704abf2945cd8d", size = 1014120 },
+    { url = "https://files.pythonhosted.org/packages/11/de/02429d598ec5ed4c70113a2c3e8b76a5b113885f85eacdcdaf19cbb6d23d/bilby.cython-0.5.3-cp312-cp312-win_amd64.whl", hash = "sha256:2758256339d7c3703014b265d3a77e0299d5c6264f962bc311c989ac453cbd60", size = 357801 },
+]
+
+[[package]]
 name = "bleach"
 version = "6.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -347,6 +384,18 @@ wheels = [
 ]
 
 [[package]]
+name = "corner"
+version = "2.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/61/2d728798e9ae3bf899d962f77486cb29888d57f6fbf9561bc1435a6b1a74/corner-2.2.3.tar.gz", hash = "sha256:471b7b63395d8f1dee176bb779348ade38d56abd23404a48802a593607745e1c", size = 5932840 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/4a/5bd0a8b981c5a93153d9eb7c63143b407cc7f8dfc9f91eedc9b6f5289eca/corner-2.2.3-py3-none-any.whl", hash = "sha256:39674b223482456c3a78234dc7bdefd21188a2d47bb8cd468104a0501f6659ec", size = 15946 },
+]
+
+[[package]]
 name = "crc32c"
 version = "2.7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -479,6 +528,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dill"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/80/630b4b88364e9a8c8c5797f4602d0f76ef820909ee32f0bacb9f90654042/dill-0.4.0.tar.gz", hash = "sha256:0633f1d2df477324f53a895b02c901fb961bdbf65a17122586ea7019292cbcf0", size = 186976 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/3d/9373ad9c56321fdab5b41197068e1d8c25883b3fea29dd361f9b55116869/dill-0.4.0-py3-none-any.whl", hash = "sha256:44f54bf6412c2c8464c14e8243eb163690a9800dbe2c367330883b19c7561049", size = 119668 },
+]
+
+[[package]]
 name = "distlib"
 version = "0.3.9"
 source = { registry = "https://pypi.org/simple" }
@@ -511,6 +569,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/37/7874b39abede48fe05c3b5a25092e419e521145e9705c97b711965e5f05d/dqsegdb2-1.3.0.tar.gz", hash = "sha256:4e291899cd395daf5913c48a835d213ef20833d78354871cb848988cc2cc8ae4", size = 33661 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/67/c977e7307d432911fe28acf55dba01f84f3a0a4a2a968350195c0f52d23e/dqsegdb2-1.3.0-py3-none-any.whl", hash = "sha256:c93087da332b7d91519a370abed3cfc91b64a6bf393ec64d79c2747c837aeb66", size = 27957 },
+]
+
+[[package]]
+name = "dynesty"
+version = "2.1.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d0/20/6a8a27d803900ad8fdfe7d730a66d2304f3fda17616eb8debe10085fa81a/dynesty-2.1.5.tar.gz", hash = "sha256:fd742d483a1f78086bc8a36316594fa1e18eeb3a27f8293fca147b377b5cd311", size = 31034553 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/01/db367a6adfa49d280cda609ad5d94b9b257058b4499c59633e6d15c5e552/dynesty-2.1.5-py2.py3-none-any.whl", hash = "sha256:c1d20f300d6e0fb64675f01683d7511b181d2a5ac372295b1fe5f4410670530b", size = 108214 },
+]
+
+[[package]]
+name = "emcee"
+version = "3.1.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cb/53/1045ee878cb24281387079f8ee4f0ade1622c6aae1ed1fd91a53e4fa5b19/emcee-3.1.6.tar.gz", hash = "sha256:11af4daf6ab8f9ca69681e3c29054665db7bbd87fd4eb8e437d2c3a1248c637d", size = 2871117 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/ef/2196b9bf88ffa1bde45853c72df021fbd07a8fa91a0f59a22d14a050dc04/emcee-3.1.6-py2.py3-none-any.whl", hash = "sha256:f2d63752023bdccf744461450e512a5b417ae7d28f18e12acd76a33de87580cb", size = 47351 },
 ]
 
 [[package]]
@@ -1323,6 +1402,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
+    { name = "bilby" },
     { name = "gwpy" },
     { name = "healpy" },
     { name = "igwn-ligolw" },
@@ -1348,6 +1428,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=6.0.1" },
+    { name = "bilby", specifier = ">=2.6.0" },
     { name = "gwpy", specifier = ">=3.0.12" },
     { name = "healpy", specifier = ">=1.17.3" },
     { name = "igwn-ligolw", specifier = ">=2.1.0" },
