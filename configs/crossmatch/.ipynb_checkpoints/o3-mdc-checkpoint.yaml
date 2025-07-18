@@ -1,0 +1,9 @@
+outdir: /home/malina.desai/projects/mdc_analytics/o3-mdc-output/
+injection_file: /home/malina.desai/amplfi_bayestar_o3mdc/o3-mdc-injections.hdf5
+pipelines:
+  aframe: ["https://gracedb-test01.igwn.org/api/", "AllSky"]
+offset: 170880000
+dt: 0.5
+flags: ["H1:DMT-ANALYSIS_READY:1", "L1:DMT-ANALYSIS_READY:1", "V1:ITF_SCIENCE:1"]
+ra_key: "right_ascension"
+injection_time_key: "time"
