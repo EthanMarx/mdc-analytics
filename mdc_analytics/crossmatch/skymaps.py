@@ -304,11 +304,11 @@ def process_skymaps(
                 results[ifo_config_str][idx] = res
 
     for ifo_config in results.keys():
-        ifo_config_str = "".join(sorted(ifo_config))
+        ifo_config_str = "".join([x[0] for x in sorted(ifo_config)])
         for key in CROSSMATCH_KEYS:
             events[f"{pipeline}_{key}_{ifo_config_str}"] = [
                 getattr(result, key) if result is not None else np.nan
-                for result in results[ifo_config]
+                for result in results[ifo_config_str]
             ]
 
     return events
