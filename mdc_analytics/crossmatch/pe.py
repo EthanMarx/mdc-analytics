@@ -51,21 +51,22 @@ def _process_posterior(
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
             logging.warning(
-                f"File 'amplfi.posterior_samples.hdf5' not found for event "
-                f"{gid}"
+                f"File 'amplfi.posterior_samples.hdf5' not found for event {gid}"
             )
             return None
         else:
             raise
     else:
         posterior = BytesIO(response.read())
-
+        
         output = {}
         with h5py.File(posterior) as f:
             for key in PE_KEYS:
-                output[key] = np.median(f["posterior_samples"][key][:])
+                samples = f["posterior_samples"][key][:]
+                output[key] = np.median(samples)
+                output[f"{key}_lower"] = np.percentile(samples, 5)
+                output[f"{key}_upper"] = np.percentile(samples, 95)
         return output
-
 
 def process_aframe_pe(
     events: pd.DataFrame,
@@ -99,7 +100,9 @@ def process_aframe_pe(
                 )
                 results[idx] = None
 
-    for key in PE_KEYS:
+    all_keys = results[0].keys() if any(results) else []
+
+    for key in all_keys:
         output = []
         for result in results:
             output.append(result[key] if result is not None else np.nan)
