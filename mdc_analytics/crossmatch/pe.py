@@ -99,8 +99,8 @@ def process_aframe_pe(
                     f"{events.aframe_graceid.values[idx]}"
                 )
                 results[idx] = None
-
-    all_keys = results[0].keys() if any(results) else []
+    valid_results = [r for r in results if r is not None]
+    all_keys = valid_results[0].keys() if valid_results else []
 
     for key in all_keys:
         output = []
