@@ -130,7 +130,6 @@ def crossmatch(
     events = pd.read_hdf(injection_file, key="events")
     logging.info(f"Loaded {len(events)} initial events from injection file")
     events = utils.filter_events(events, filters)
-    print("Columns in events:", events.columns.tolist())
     logging.info(f"After filtering: {len(events)} events remaining")
     events["luminosity_distance"] = events["luminosity_distance"]
 
