@@ -245,16 +245,21 @@ def process_skymaps(
         pipeline=pipeline,
         bayestar_ifo_configs=bayestar_ifo_configs,
     )
+
+    if bayestar_ifo_configs is not None:
+        bayestar_ifo_configs = [cfg for cfg in bayestar_ifo_configs if cfg is not None]
+        if not bayestar_ifo_configs:
+            logging.warning("No valid bayestar_ifo_configs after filtering None entries")
+            return events  
+
     futures = parallelize(func, events, max_workers=max_workers)
 
-    # Handle case where bayestar_ifo_configs is None
     if bayestar_ifo_configs is None:
-        # We'll determine the ifo config strings dynamically from the results
         ifo_config_strs = []
         results = {}
     else:
         ifo_config_strs = [
-            "".join([x[0] for x in sorted(ifo_config)])
+            "".join(sorted(ifo_config))
             for ifo_config in bayestar_ifo_configs
         ]
         results = {
@@ -285,24 +290,25 @@ def process_skymaps(
 
         if result is None:
             if bayestar_ifo_configs is None:
-                continue  # Skip this event if no result and no configs
+                continue  
             for ifo_config in ifo_config_strs:
                 results[ifo_config][idx] = None
         else:
             for ifo_config, res in result.items():
-                ifo_config_str = "".join([x[0] for x in sorted(ifo_config)])
-                # Initialize results dict if bayestar_ifo_configs was None
+                if ifo_config is None:
+                    logging.warning(f"Skipping None ifo_config for event {gids[idx]}")
+                    continue
+                ifo_config_str = "".join(sorted(ifo_config))
                 if ifo_config_str not in results:
                     results[ifo_config_str] = [None] * len(events)
                 results[ifo_config_str][idx] = res
 
-    # append bayestar statistics for each inteferometer combination
     for ifo_config in results.keys():
-        ifo_config_str = "".join([x[0] for x in sorted(ifo_config)])
+        ifo_config_str = ''.join([c for c in ifo_config if not c.isdigit()])
         for key in CROSSMATCH_KEYS:
             events[f"{pipeline}_{key}_{ifo_config_str}"] = [
                 getattr(result, key) if result is not None else np.nan
-                for result in results[ifo_config_str]
+                for result in results[ifo_config]
             ]
 
     return events
