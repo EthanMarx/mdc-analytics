@@ -26,7 +26,6 @@ from .pe import MATCHED_FILTERING_PIPELINES
 CROSSMATCH_KEYS = [
     "searched_area",
     "searched_vol",
-    "searched_dist",
     "searched_prob",
     "searched_prob_vol",
     "searched_prob_dist",
