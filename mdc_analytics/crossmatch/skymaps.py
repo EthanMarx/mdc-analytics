@@ -26,8 +26,10 @@ from .pe import MATCHED_FILTERING_PIPELINES
 CROSSMATCH_KEYS = [
     "searched_area",
     "searched_vol",
+    "searched_dist",
     "searched_prob",
     "searched_prob_vol",
+    "searched_prob_dist",
 ]
 
 PIPELINE_TO_SKYMAP = {
@@ -247,10 +249,14 @@ def process_skymaps(
     )
 
     if bayestar_ifo_configs is not None:
-        bayestar_ifo_configs = [cfg for cfg in bayestar_ifo_configs if cfg is not None]
+        bayestar_ifo_configs = [
+            cfg for cfg in bayestar_ifo_configs if cfg is not None
+        ]
         if not bayestar_ifo_configs:
-            logging.warning("No valid bayestar_ifo_configs after filtering None entries")
-            return events  
+            logging.warning(
+                "No valid bayestar_ifo_configs after filtering None entries"
+            )
+            return events
 
     futures = parallelize(func, events, max_workers=max_workers)
 
@@ -259,8 +265,7 @@ def process_skymaps(
         results = {}
     else:
         ifo_config_strs = [
-            "".join(sorted(ifo_config))
-            for ifo_config in bayestar_ifo_configs
+            "".join(sorted(ifo_config)) for ifo_config in bayestar_ifo_configs
         ]
         results = {
             ifo_config: [None] * len(events) for ifo_config in ifo_config_strs
@@ -290,13 +295,15 @@ def process_skymaps(
 
         if result is None:
             if bayestar_ifo_configs is None:
-                continue  
+                continue
             for ifo_config in ifo_config_strs:
                 results[ifo_config][idx] = None
         else:
             for ifo_config, res in result.items():
                 if ifo_config is None:
-                    logging.warning(f"Skipping None ifo_config for event {gids[idx]}")
+                    logging.warning(
+                        f"Skipping None ifo_config for event {gids[idx]}"
+                    )
                     continue
                 ifo_config_str = "".join(sorted(ifo_config))
                 if ifo_config_str not in results:
@@ -304,7 +311,7 @@ def process_skymaps(
                 results[ifo_config_str][idx] = res
 
     for ifo_config in results.keys():
-        ifo_config_str = ''.join([c for c in ifo_config if not c.isdigit()])
+        ifo_config_str = "".join([c for c in ifo_config if not c.isdigit()])
         for key in CROSSMATCH_KEYS:
             events[f"{pipeline}_{key}_{ifo_config_str}"] = [
                 getattr(result, key) if result is not None else np.nan
