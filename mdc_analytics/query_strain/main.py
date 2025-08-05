@@ -27,7 +27,7 @@ def query_strain(
     sample_rate: float,
     psd_length: float,
     resample_method: Literal["lal", "gwpy"] = "gwpy",
-    filters: Optional[tuple[str, float, float]] = None,
+    filters:  Optional[list[tuple[str, float | str, float | str]]] = None,
     max_workers: int = 10,
 ):
     """
