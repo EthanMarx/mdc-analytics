@@ -8,6 +8,7 @@ import concurrent
 from tqdm.auto import tqdm
 from . import utils
 from functools import partial
+import numpy as np
 
 
 def configure_logging():
@@ -27,7 +28,9 @@ def query_strain(
     sample_rate: float,
     psd_length: float,
     resample_method: Literal["lal", "gwpy"] = "gwpy",
-    filters:  Optional[list[tuple[str, float | str, float | str]]] = None,
+    filters: Optional[list[tuple[str, float | str, float | str]]] = None,
+    flags: Optional[list[str]] = None,
+    injection_time_key: str = "time_geocenter",
     max_workers: int = 10,
 ):
     """
@@ -35,13 +38,30 @@ def query_strain(
     from directories of GWF files into an hdf5 format
     """
 
+    outdir.mkdir(exist_ok=True, parents=True)
     configure_logging()
 
     # read in injection file and apply filters
     events = pd.read_hdf(injection_file, key="events")
     events = utils.filter_events(events, filters)
-    fname_data = utils.parse_fnames(ifos, strain_data_dirs)
+    events = utils.append_data_quality_flags(
+        events,
+        flags,
+        events[injection_time_key].min(),
+        events[injection_time_key].max(),
+        injection_time_key,
+    )
 
+    if flags is not None:
+        logging.info(f"{len(events)} events before removing bad data quality")
+        mask = np.ones(len(events), dtype=bool)
+        for flag in flags:
+            mask &= events[flag]
+
+        events = events[mask]
+        logging.info(f"{len(events)} events after removing bad data quality")
+
+    fname_data = utils.parse_fnames(ifos, strain_data_dirs)
     strain = {ifo: [] for ifo in ifos}
 
     # Create a mapping to maintain original order
@@ -81,9 +101,13 @@ def query_strain(
         for ifo in ifos:
             strain[ifo].append(results[i][ifo])
 
-    with h5py.File(outdir / "strain.hdf5") as f:
+    output = outdir / "strain.hdf5"
+    with h5py.File(output, "w") as f:
+        g = f.create_group("strain")
         for ifo, data in strain.items():
-            f.create_dataset(ifo, data=data)
+            g.create_dataset(ifo, data=data)
+
+    events.to_hdf(output, key="parameters", mode="a")
 
 
 def main():

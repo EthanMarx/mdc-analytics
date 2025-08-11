@@ -7,7 +7,7 @@ import pandas as pd
 from collections import defaultdict
 import re
 import logging
-
+from gwpy.segments import DataQualityFlag
 
 patterns = {
     "prefix": "[a-zA-Z0-9_:-]+",
@@ -61,6 +61,7 @@ def read_data(
     channel: str,
     start: float,
     end: float,
+    nproc: int = 1,
 ):
     paths = []
     logging.info(f"Reading data from {start} to {end}")
@@ -72,10 +73,10 @@ def read_data(
             paths.append(str(file))
 
     if len(paths) == 1:
-        data = TimeSeries.read(paths[0], channel=channel)
+        data = TimeSeries.read(paths[0], channel=channel, nproc=nproc)
     elif len(paths) == 2:
-        data = TimeSeries.read(paths[0], channel=channel)
-        second = TimeSeries.read(paths[1], channel=channel)
+        data = TimeSeries.read(paths[0], channel=channel, nproc=nproc)
+        second = TimeSeries.read(paths[1], channel=channel, nproc=nproc)
         data.append(second)
     else:
         raise ValueError("Shouldn't be more than 2 files")
@@ -124,5 +125,32 @@ def filter_events(
         low, high = float(low), float(high)
         mask = (events[key] >= low) & (events[key] <= high)
         events = events[mask]
+
+    return events
+
+
+def append_data_quality_flags(
+    events: pd.DataFrame,
+    flags: list[str],
+    start: float,
+    stop: float,
+    injection_time_key: str,
+) -> tuple[pd.DataFrame, float]:
+    """
+    For each flag, adds a boolean column to the events dataframe indicating if
+    an injection occured during that flags active segments
+    """
+    mask = np.ones(len(events), dtype=bool)
+
+    for flag in flags:
+        dq_flag = DataQualityFlag.query(flag, start, stop)
+        segs = np.asarray(dq_flag.active)
+        mask = np.any(
+            (events[injection_time_key].values[:, None] >= segs[:, 0])
+            & (events[injection_time_key].values[:, None] <= segs[:, 1]),
+            axis=1,
+        )
+
+        events[flag] = mask
 
     return events
