@@ -150,6 +150,6 @@ def append_data_quality_flags(
             axis=1,
         )
 
-        events[mask] = mask
+        events[flag] = mask
 
     return events

@@ -60,7 +60,6 @@ def query_strain(
 
         events = events[mask]
         logging.info(f"{len(events)} events after removing bad data quality")
-
     fname_data = utils.parse_fnames(ifos, strain_data_dirs)
     strain = {ifo: [] for ifo in ifos}
 
