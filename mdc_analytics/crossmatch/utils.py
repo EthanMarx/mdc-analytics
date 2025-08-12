@@ -72,7 +72,6 @@ def append_data_quality_flags(
     For each flag, adds a boolean column to the events dataframe indicating if
     an injection occured during that flags active segments
     """
-    mask = np.ones(len(events), dtype=bool)
 
     for flag in flags:
         dq_flag = DataQualityFlag.query(flag, start, stop)

@@ -107,6 +107,7 @@ def query_strain(
         for ifo, data in strain.items():
             g.create_dataset(ifo, data=data)
 
+    logging.info(f"Writing strain data to {output}")
     events.to_hdf(output, key="parameters", mode="a")
 
 
