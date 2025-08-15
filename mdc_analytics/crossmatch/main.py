@@ -193,12 +193,12 @@ def crossmatch(
             f"{sum(~injection_mask)} events do not correspond with known "
             f"injection"
         )
+        events.to_hdf("./preferred-test.hdf5", key="events")
 
         # filter for "noise" pipeline events
         # so we can investigate them further
         pipeline_noise = pipeline_events[~injection_mask]
         pipeline_noise.to_hdf(outdir / f"{pipeline}_noise.hdf5", key="events")
-
         # process parameter estimation data
         events = process_pe(
             events,
@@ -220,7 +220,6 @@ def crossmatch(
             max_workers=max_workers,
             raise_on_error=True,
         )
-
         # query embright probabilities
         events = process_embrights(
             events,

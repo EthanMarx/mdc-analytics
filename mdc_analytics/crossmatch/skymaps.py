@@ -29,6 +29,7 @@ CROSSMATCH_KEYS = [
     "searched_prob",
     "searched_prob_vol",
     "searched_prob_dist",
+    "offset",
 ]
 
 PIPELINE_TO_SKYMAP = {
@@ -189,6 +190,7 @@ def _process_skymap(
     """Process skymap statistics for a single event."""
     # Set environment variable to speed up Bayestar
     os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
 
     # For preferred events, get the actual pipeline
     actual_pipeline = pipeline

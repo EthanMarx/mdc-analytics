@@ -114,7 +114,9 @@ def crossmatch_gevents(
 
         output = np.full(len(events), default_val, dtype=object)
         output[mask] = pipeline_events.loc[args[mask], attr]
-        new_columns[f"{pipeline}_{attr}"] = pd.Series(output).astype(dtype)
+        new_columns[f"{pipeline}_{attr}"] = pd.Series(
+            output, index=events.index
+        ).astype(dtype)
 
     # Handle preferred_pipeline column for preferred events
     if (
@@ -123,14 +125,15 @@ def crossmatch_gevents(
     ):
         output = np.full(len(events), "", dtype=object)
         output[mask] = pipeline_events.loc[args[mask], "preferred_pipeline"]
-        new_columns["preferred_pipeline"] = pd.Series(output).astype("string")
+        new_columns["preferred_pipeline"] = pd.Series(
+            output, index=events.index
+        ).astype("string")
 
     # Calculate dt column
     new_columns[f"{pipeline}_dt"] = np.abs(
         new_columns[f"{pipeline}_gpstime"]
         - events[f"{pipeline}_time_geocenter_replay"]
     )
-
     new_df = pd.DataFrame(new_columns, index=events.index)
     events = pd.concat([events, new_df], axis=1).fillna("")
 
