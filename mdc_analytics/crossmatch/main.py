@@ -9,6 +9,7 @@ from .gracedb import (
 )
 from .skymaps import process_skymaps
 from .embrights import process_embrights
+from .pe import process_pe
 from . import utils
 from .utils import shutdown_global_pool
 import pandas as pd
@@ -198,13 +199,13 @@ def crossmatch(
         pipeline_noise = pipeline_events[~injection_mask]
         pipeline_noise.to_hdf(outdir / f"{pipeline}_noise.hdf5", key="events")
         # process parameter estimation data
-        # events = process_pe(
-        #    events,
-        #    pipeline,
-        #    server,
-        #    max_workers=max_workers,
-        #    raise_on_error=raise_on_error,
-        # )
+        events = process_pe(
+            events,
+            pipeline,
+            server,
+            max_workers=max_workers,
+            raise_on_error=raise_on_error,
+        )
 
         # calculate searched area, vol, probs, etc.
         # also, for matched filtering pipelines that

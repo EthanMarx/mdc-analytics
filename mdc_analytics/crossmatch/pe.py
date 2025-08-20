@@ -14,7 +14,7 @@ from igwn_ligolw.utils import load_fileobj
 from igwn_ligolw import lsctables
 from tqdm.auto import tqdm
 
-from .utils import parallelize
+from .utils import parallelize, shutdown_global_pool
 
 PE_KEYS = ["chirp_mass", "luminosity_distance"]
 MATCHED_FILTERING_PIPELINES = ["mbta", "pycbc", "gstlal", "spiir"]
@@ -51,14 +51,15 @@ def _process_posterior(
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
             logging.warning(
-                f"File 'amplfi.posterior_samples.hdf5' not found for event {gid}"
+                "File 'amplfi.posterior_samples.hdf5' "
+                f"not found for event {gid}"
             )
             return None
         else:
             raise
     else:
         posterior = BytesIO(response.read())
-        
+
         output = {}
         with h5py.File(posterior) as f:
             for key in PE_KEYS:
@@ -67,6 +68,7 @@ def _process_posterior(
                 output[f"{key}_lower"] = np.percentile(samples, 5)
                 output[f"{key}_upper"] = np.percentile(samples, 95)
         return output
+
 
 def process_aframe_pe(
     events: pd.DataFrame,
@@ -92,6 +94,7 @@ def process_aframe_pe(
                     f"{events.aframe_graceid.values[idx]}"
                 )
                 logging.error(traceback.format_exc())
+                shutdown_global_pool()
                 raise e
             else:
                 logging.error(

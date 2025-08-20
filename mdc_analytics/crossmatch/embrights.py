@@ -9,7 +9,7 @@ import requests
 from ligo.gracedb.rest import GraceDb
 from tqdm.auto import tqdm
 import numpy as np
-from .utils import parallelize
+from .utils import parallelize, shutdown_global_pool
 
 EM_BRIGHT_KEYS = ["HasMassGap", "HasNS", "HasRemnant", "HasSSM"]
 
@@ -77,6 +77,7 @@ def process_embrights(
             if raise_on_error:
                 logging.error(f"Failed to fetch em bright for {gids[idx]}")
                 logging.error(traceback.format_exc())
+                shutdown_global_pool()
                 raise e
             else:
                 results[idx] = None
