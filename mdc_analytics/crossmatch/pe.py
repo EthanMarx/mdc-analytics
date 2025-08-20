@@ -56,7 +56,7 @@ def _process_posterior(
             )
             return None
         else:
-            raise
+            raise e
     else:
         posterior = BytesIO(response.read())
 
