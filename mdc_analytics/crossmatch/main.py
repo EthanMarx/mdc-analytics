@@ -8,7 +8,6 @@ from .gracedb import (
     cluster_gevents,
 )
 from .skymaps import process_skymaps
-from .pe import process_pe
 from .embrights import process_embrights
 from . import utils
 from .utils import shutdown_global_pool
@@ -193,20 +192,19 @@ def crossmatch(
             f"{sum(~injection_mask)} events do not correspond with known "
             f"injection"
         )
-        events.to_hdf("./preferred-test.hdf5", key="events")
 
         # filter for "noise" pipeline events
         # so we can investigate them further
         pipeline_noise = pipeline_events[~injection_mask]
         pipeline_noise.to_hdf(outdir / f"{pipeline}_noise.hdf5", key="events")
         # process parameter estimation data
-        events = process_pe(
-            events,
-            pipeline,
-            server,
-            max_workers=max_workers,
-            raise_on_error=True,
-        )
+        # events = process_pe(
+        #    events,
+        #    pipeline,
+        #    server,
+        #    max_workers=max_workers,
+        #    raise_on_error=raise_on_error,
+        # )
 
         # calculate searched area, vol, probs, etc.
         # also, for matched filtering pipelines that
@@ -218,7 +216,7 @@ def crossmatch(
             server,
             bayestar_ifo_configs=bayestar_ifo_configs,
             max_workers=max_workers,
-            raise_on_error=True,
+            raise_on_error=raise_on_error,
         )
         # query embright probabilities
         events = process_embrights(
@@ -226,7 +224,7 @@ def crossmatch(
             pipeline,
             server,
             max_workers=max_workers,
-            raise_on_error=True,
+            raise_on_error=raise_on_error,
         )
 
     logging.info("Shutting down pool")

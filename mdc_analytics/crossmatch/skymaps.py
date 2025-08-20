@@ -20,7 +20,7 @@ from ligo.gracedb.rest import GraceDb
 from igwn_ligolw.utils import load_fileobj
 from tqdm.auto import tqdm
 
-from .utils import parallelize
+from .utils import parallelize, shutdown_global_pool
 from .pe import MATCHED_FILTERING_PIPELINES
 
 CROSSMATCH_KEYS = [
@@ -285,6 +285,7 @@ def process_skymaps(
             if raise_on_error:
                 logging.error(f"Failed to process skymap for {gids[idx]}")
                 logging.error(traceback.format_exc())
+                shutdown_global_pool()
                 raise e
             else:
                 logging.error(f"Failed to process skymap for {gids[idx]}")
