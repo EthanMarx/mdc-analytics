@@ -61,6 +61,7 @@ def crossmatch(
     injection_time_key: str = "time_geocenter",
     max_workers: int = 15,
     filters: Optional[list[tuple[str, float | str, float | str]]] = None,
+    bayestar_waveform: str = "IMRPhenomD",
     raise_on_error: bool = False,
 ):
     """
@@ -117,7 +118,8 @@ def crossmatch(
         )
     else:
         logging.info(
-            "No bayestar_ifo_configs specified, only using GraceDB skymap"
+            "No bayestar_ifo_configs specified, "
+            "only using ifo configuration from GraceDB skymap"
         )
 
     logging.info(f"Saving data to {outdir}")
@@ -206,11 +208,6 @@ def crossmatch(
             max_workers=max_workers,
             raise_on_error=raise_on_error,
         )
-
-        # calculate searched area, vol, probs, etc.
-        # also, for matched filtering pipelines that
-        # have coinc.xml files, optionally reanalyze
-        # with different bayestar detector configurations
         events = process_skymaps(
             events,
             pipeline,
@@ -218,6 +215,7 @@ def crossmatch(
             bayestar_ifo_configs=bayestar_ifo_configs,
             max_workers=max_workers,
             raise_on_error=raise_on_error,
+            bayestar_waveform=bayestar_waveform,
         )
         # query embright probabilities
         events = process_embrights(

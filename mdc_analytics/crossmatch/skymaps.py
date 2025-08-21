@@ -100,6 +100,7 @@ def _generate_bayestar_skymap(
     event_source: object,
     ifo_config: frozenset[str],
     available_instruments: frozenset[str],
+    waveform: str = "IMRPhenomD",
 ) -> object:
     """Generate skymap using Bayestar for specific IFO configuration."""
     disable_detectors = available_instruments - ifo_config
@@ -111,7 +112,7 @@ def _generate_bayestar_skymap(
         event_source, disable_detectors, raises=False
     )
     (event,) = event_source.values()
-    skymap = localize(event, waveform="IMRPhenomPv2", f_low=20)
+    skymap = localize(event, waveform=waveform, f_low=20)
     return skymap
 
 
@@ -129,9 +130,9 @@ def _process_skymap_configs(
     pipeline: str,
     coord: SkyCoord,
     bayestar_ifo_configs: Optional[list[frozenset[str]]],
+    bayestar_waveform: str = "IMRPhenomD",
 ) -> dict[frozenset[str], object]:
     """Process all requested IFO configurations for a single event."""
-
     # Process the uploaded GraceDB skymap
     gracedb_skymap, gracedb_instruments = _get_gracedb_skymap(
         gdb, gid, pipeline
@@ -142,9 +143,7 @@ def _process_skymap_configs(
             return {gracedb_instruments: None}
         else:
             return dict.fromkeys(bayestar_ifo_configs)
-
     gracedb_result = _crossmatch_skymap(gracedb_skymap, coord)
-
     # If bayestar_ifo_configs is None, only return GraceDB skymap result
     if bayestar_ifo_configs is None:
         return {gracedb_instruments: gracedb_result}
@@ -169,7 +168,10 @@ def _process_skymap_configs(
                 continue
 
             bayestar_skymap = _generate_bayestar_skymap(
-                event_source, ifo_config, available_instruments
+                event_source,
+                ifo_config,
+                available_instruments,
+                bayestar_waveform,
             )
 
             if bayestar_skymap is not None:
@@ -186,6 +188,7 @@ def _process_skymap(
     pipeline: str,
     gdb_server: str,
     bayestar_ifo_configs: Optional[list[frozenset[str]]],
+    bayestar_waveform: str = "IMRPhenomD",
 ):
     """Process skymap statistics for a single event."""
     # Set environment variable to speed up Bayestar
@@ -211,10 +214,14 @@ def _process_skymap(
         row.declination * u.rad,
         row.luminosity_distance * u.Mpc,
     )
-
     # Process all requested IFO configurations using the actual pipeline
     return _process_skymap_configs(
-        gdb, gid, actual_pipeline, coord, bayestar_ifo_configs
+        gdb,
+        gid,
+        actual_pipeline,
+        coord,
+        bayestar_ifo_configs,
+        bayestar_waveform,
     )
 
 
@@ -225,6 +232,7 @@ def process_skymaps(
     bayestar_ifo_configs: Optional[list[frozenset[str]]],
     max_workers: int = 15,
     raise_on_error: bool = False,
+    bayestar_waveform: str = "IMRPhenomD",
 ) -> pd.DataFrame:
     """
     Process skymap data for different pipelines including preferred events.
@@ -247,17 +255,8 @@ def process_skymaps(
         gdb_server=gdb_server,
         pipeline=pipeline,
         bayestar_ifo_configs=bayestar_ifo_configs,
+        bayestar_waveform=bayestar_waveform,
     )
-
-    if bayestar_ifo_configs is not None:
-        bayestar_ifo_configs = [
-            cfg for cfg in bayestar_ifo_configs if cfg is not None
-        ]
-        if not bayestar_ifo_configs:
-            logging.warning(
-                "No valid bayestar_ifo_configs after filtering None entries"
-            )
-            return events
 
     futures = parallelize(func, events, max_workers=max_workers)
 
@@ -293,6 +292,7 @@ def process_skymaps(
                     result = None
                 else:
                     result = dict.fromkeys(ifo_config_strs)
+                logging.error(traceback.format_exc())
                 logging.error(e)
 
         if result is None:
@@ -307,13 +307,18 @@ def process_skymaps(
                         f"Skipping None ifo_config for event {gids[idx]}"
                     )
                     continue
-                ifo_config_str = "".join(sorted(ifo_config))
+
+                ifo_config_str = "".join(
+                    sorted([c for c in ifo_config if not c.isdigit()])
+                )
                 if ifo_config_str not in results:
                     results[ifo_config_str] = [None] * len(events)
                 results[ifo_config_str][idx] = res
 
     for ifo_config in results.keys():
-        ifo_config_str = "".join([c for c in ifo_config if not c.isdigit()])
+        ifo_config_str = "".join(
+            sorted([c for c in ifo_config if not c.isdigit()])
+        )
         for key in CROSSMATCH_KEYS:
             events[f"{pipeline}_{key}_{ifo_config_str}"] = [
                 getattr(result, key) if result is not None else np.nan
