@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from ligo.gracedb.rest import GraceDb
 from itertools import batched
-
+from tqdm.auto import tqdm
 
 # mapping from gevent columns to (datatype, default_value) for pandas df
 GEVENT_COLUMNS = {
@@ -58,7 +58,10 @@ def query_gevents(
                     )
 
         response = []
-        for batch in batched(superevents_df.preferred_event.values, 1000):
+        for batch in tqdm(
+            batched(superevents_df.preferred_event.values, 1000),
+            total=len(superevents_df) // 1000 + 1,
+        ):
             gevent = client.events(" ".join(batch))
             response.extend(gevent)
 

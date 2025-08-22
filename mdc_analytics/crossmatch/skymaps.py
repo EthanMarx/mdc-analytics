@@ -42,30 +42,6 @@ PIPELINE_TO_SKYMAP = {
 }
 
 
-def _get_gracedb_skymap(
-    gdb: GraceDb,
-    gid: str,
-    pipeline: str,
-) -> tuple[object, frozenset[str]]:
-    """Download and parse skymap from GraceDB."""
-    try:
-        skymap_response = gdb.files(gid, PIPELINE_TO_SKYMAP[pipeline])
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
-            logging.warning(
-                f"File '{PIPELINE_TO_SKYMAP[pipeline]}' not found for event "
-                f"{gid}"
-            )
-            return None, None
-        else:
-            raise
-    else:
-        skymap_bytes = BytesIO(skymap_response.read())
-        skymap = read_sky_map(skymap_bytes, moc=True)
-        skymap_instruments = frozenset(skymap.meta["instruments"])
-        return skymap, skymap_instruments
-
-
 def _get_coinc_data(
     gdb: GraceDb,
     gid: str,
@@ -78,7 +54,7 @@ def _get_coinc_data(
             logging.warning(f"File 'coinc.xml' not found for event {gid}")
             return None, None
         else:
-            raise
+            raise e
     else:
         coinc_bytes = BytesIO(coinc_response.read())
         doc = load_fileobj(
@@ -100,19 +76,25 @@ def _generate_bayestar_skymap(
     event_source: object,
     ifo_config: frozenset[str],
     available_instruments: frozenset[str],
-    waveform: str = "IMRPhenomD",
+    waveform: str = "o2-uberbank",
+    f_low: float = 15.0,
 ) -> object:
     """Generate skymap using Bayestar for specific IFO configuration."""
-    disable_detectors = available_instruments - ifo_config
-    if (not disable_detectors) or (ifo_config <= available_instruments):
+    if not ifo_config.issubset(available_instruments):
+        logging.debug(
+            f"Requested IFO configuration {ifo_config} is not a subset of "
+            f"available instruments {available_instruments},"
+            "skipping Bayestar generation"
+        )
         return None
 
+    disable_detectors = available_instruments - ifo_config
     # Disable detectors not in the requested configuration
     event_source = events.detector_disabled.open(
         event_source, disable_detectors, raises=False
     )
     (event,) = event_source.values()
-    skymap = localize(event, waveform=waveform, f_low=20)
+    skymap = localize(event, waveform=waveform, f_low=f_low)
     return skymap
 
 
@@ -130,26 +112,11 @@ def _process_skymap_configs(
     pipeline: str,
     coord: SkyCoord,
     bayestar_ifo_configs: Optional[list[frozenset[str]]],
-    bayestar_waveform: str = "IMRPhenomD",
+    bayestar_waveform: str = "o2-uberbank",
 ) -> dict[frozenset[str], object]:
     """Process all requested IFO configurations for a single event."""
-    # Process the uploaded GraceDB skymap
-    gracedb_skymap, gracedb_instruments = _get_gracedb_skymap(
-        gdb, gid, pipeline
-    )
-    if gracedb_skymap is None:
-        # Return None for all requested configurations if no skymap found
-        if bayestar_ifo_configs is None:
-            return {gracedb_instruments: None}
-        else:
-            return dict.fromkeys(bayestar_ifo_configs)
-    gracedb_result = _crossmatch_skymap(gracedb_skymap, coord)
-    # If bayestar_ifo_configs is None, only return GraceDB skymap result
-    if bayestar_ifo_configs is None:
-        return {gracedb_instruments: gracedb_result}
 
     results = dict.fromkeys(bayestar_ifo_configs)
-    results[gracedb_instruments] = gracedb_result
 
     # For matched filtering pipelines, generate additional Bayestar skymaps
     if pipeline in MATCHED_FILTERING_PIPELINES:
@@ -157,16 +124,14 @@ def _process_skymap_configs(
 
         # If coinc data not found, skip additional Bayestar generation
         if event_source is None:
+            logging.warning(
+                f"Missing coinc.xml data for {gid}, "
+                "skipping Bayestar generation"
+            )
             return {key: results.get(key) for key in bayestar_ifo_configs}
-
-        # Verify that GraceDB skymap uses same instruments as coinc.xml
-        assert available_instruments == gracedb_instruments
 
         # Generate skymaps for other requested IFO configurations
         for ifo_config in bayestar_ifo_configs:
-            if ifo_config == gracedb_instruments:
-                continue
-
             bayestar_skymap = _generate_bayestar_skymap(
                 event_source,
                 ifo_config,
@@ -180,7 +145,7 @@ def _process_skymap_configs(
             else:
                 results[ifo_config] = None
 
-    return {key: results[key] for key in bayestar_ifo_configs}
+    return results
 
 
 def _process_skymap(
@@ -188,7 +153,7 @@ def _process_skymap(
     pipeline: str,
     gdb_server: str,
     bayestar_ifo_configs: Optional[list[frozenset[str]]],
-    bayestar_waveform: str = "IMRPhenomD",
+    bayestar_waveform: str = "o2-uberbank",
 ):
     """Process skymap statistics for a single event."""
     # Set environment variable to speed up Bayestar
@@ -197,14 +162,16 @@ def _process_skymap(
 
     # For preferred events, get the actual pipeline
     actual_pipeline = pipeline
-    if pipeline == "preferred":
-        actual_pipeline = getattr(row, "preferred_pipeline", "unknown")
-        if not actual_pipeline:
-            return None
 
     gid = getattr(row, f"{pipeline}_graceid")
     if not gid:
         return None
+
+    if pipeline == "preferred":
+        actual_pipeline = getattr(row, "preferred_pipeline", "unknown")
+        if not actual_pipeline:
+            logging.warning(f"Event {gid} has no preferred pipeline, skipping")
+            return None
 
     gdb = GraceDb(service_url=gdb_server, use_auth="scitoken")
 
@@ -232,7 +199,7 @@ def process_skymaps(
     bayestar_ifo_configs: Optional[list[frozenset[str]]],
     max_workers: int = 15,
     raise_on_error: bool = False,
-    bayestar_waveform: str = "IMRPhenomD",
+    bayestar_waveform: str = "o2-uberbank",
 ) -> pd.DataFrame:
     """
     Process skymap data for different pipelines including preferred events.
@@ -265,7 +232,8 @@ def process_skymaps(
         results = {}
     else:
         ifo_config_strs = [
-            "".join(sorted(ifo_config)) for ifo_config in bayestar_ifo_configs
+            "".join(sorted([c for c in ifo_config if not c.isdigit()]))
+            for ifo_config in bayestar_ifo_configs
         ]
         results = {
             ifo_config: [None] * len(events) for ifo_config in ifo_config_strs
@@ -302,12 +270,6 @@ def process_skymaps(
                 results[ifo_config][idx] = None
         else:
             for ifo_config, res in result.items():
-                if ifo_config is None:
-                    logging.warning(
-                        f"Skipping None ifo_config for event {gids[idx]}"
-                    )
-                    continue
-
                 ifo_config_str = "".join(
                     sorted([c for c in ifo_config if not c.isdigit()])
                 )

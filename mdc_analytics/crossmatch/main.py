@@ -33,10 +33,11 @@ def configure_logging():
     import warnings
 
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    logging.basicConfig(level=logging.INFO, format=log_format)
+    logging.basicConfig(level=logging.DEBUG, format=log_format)
     logging.getLogger("scitokens").setLevel(logging.ERROR)
     logging.getLogger("BAYESTAR").setLevel(logging.ERROR)
     logging.getLogger("matplotlib.texmanager").setLevel(logging.ERROR)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
     # Silence X.509 certificate expiration warnings
     warnings.filterwarnings(
         "ignore",
@@ -61,7 +62,7 @@ def crossmatch(
     injection_time_key: str = "time_geocenter",
     max_workers: int = 15,
     filters: Optional[list[tuple[str, float | str, float | str]]] = None,
-    bayestar_waveform: str = "IMRPhenomD",
+    bayestar_waveform: str = "o2-uberbank",
     raise_on_error: bool = False,
 ):
     """
